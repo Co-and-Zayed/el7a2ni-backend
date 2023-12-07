@@ -22,6 +22,7 @@ const {
   resetPassword,
   getHealthRecords,
   changePassword,
+  getAllPrescriptions,
 } = require("./patientController");
 
 const { authenticateToken } = require("../../../../routes/auth/authController");
@@ -142,5 +143,12 @@ router.post("/resetPassword", authenticateToken("PATIENT"), resetPassword);
 router.get("/getHealthRecords", authenticateToken("PATIENT"), getHealthRecords);
 // Change Password
 router.post("/changePassword", authenticateToken("PATIENT"), changePassword);
+
+// get All prescriptions
+router.post(
+  "/getAllPrescriptions",
+  //authenticateToken("PATIENT"),
+  getAllPrescriptions
+);
 
 module.exports = router;

@@ -235,6 +235,67 @@ const changePassword = async (req, res) => {
     message: "Password Changed Successfully!",
   });
 };
+const getAllPrescriptions = async (req, res) => {
+  const username = req.body.username;
+
+  try {
+    const prescription = await prescriptionsModel.find({
+      doctorUsername: username,
+    });
+
+    if (!prescription) {
+      res.status(404).json({ message: " No Prescriptions Found" });
+    }
+
+    res.status(200).json({
+      message: "Prescriptions Retrieved Successfully",
+      prescription,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+const updatePrescriptionDosage = async (req, res) => {
+  const prescriptionID = req.body.prescriptionID;
+  const updatedDosage = req.body.dosage;
+  const medicineName = req.body.medicine;
+
+  try {
+    // Find the prescription by ID
+    const prescription = prescriptionsModel.findById(prescriptionID);
+
+    // Find the medicine in the prescription
+    const medicine = prescription.medicines.find(
+      (m) => m.name === medicineName
+    );
+
+    // Update the dosage
+    medicine.dosage = updatedDosage;
+
+    res.status(200).json({
+      message: "Prescriptions Dosage Updated Successfully",
+      prescription,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+const addPrescription = async (req, res) => {
+  const prescriptionID = req.body.prescriptionID;
+  const dosage = req.body.dosage;
+  const medicineName = req.body.medicine;
+
+  try {
+    res.status(200).json({
+      message: "Prescriptions Added Successfully",
+      prescription,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
 
 module.exports = {
   getPatientInfo,
@@ -249,4 +310,7 @@ module.exports = {
   rejectContract,
   addHealthRecordForPatient,
   changePassword,
+  getAllPrescriptions,
+  updatePrescriptionDosage,
+  addPrescription,
 };

@@ -14,6 +14,7 @@ const {
   rejectContract,
   addHealthRecordForPatient,
   changePassword,
+  getAllPrescriptions,
 } = require("./doctorController");
 const { getAppointments } = require("../appointment/appointmentController");
 
@@ -58,6 +59,18 @@ router.post(
   "/addHealthRecordForPatient",
   authenticateToken("DOCTOR"),
   addHealthRecordForPatient
+);
+
+router.post(
+  "/getAllPrescriptions",
+  //authenticateToken("DOCTOR"),
+  getAllPrescriptions
+);
+
+router.post(
+  "/updatePrescriptionDosage",
+  //authenticateToken("DOCTOR"),
+  updatePrescriptionDosage
 );
 
 // Change Password
