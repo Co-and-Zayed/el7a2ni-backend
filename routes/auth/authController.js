@@ -84,6 +84,7 @@ async function deleteRefreshToken(req, res) {
 // Middleware to authenticate the access token
 function authenticateToken(userType = null) {
   return async (req, res, next) => {
+    console.log("AUTHENTICATE SEYATTAK")
     const { refreshToken } = req.body;
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];

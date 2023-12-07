@@ -63,6 +63,28 @@ const getDoctors = async (req, res) => {
   }
 };
 
+const getMyDoctors = async (req, res) => {
+  try {
+    const { patientId } = req.body;
+
+    // Find appointments for the specified patient
+    const appointments = await Appointment.find({ patientId });
+
+    // Extract unique doctor IDs from the appointments
+    const doctorIds = [
+      ...new Set(appointments.map((appointment) => appointment.doctorId)),
+    ];
+
+    // Fetch details of doctors using the unique doctor IDs
+    const doctors = await Doctor.find({ _id: { $in: doctorIds } });
+
+    res.json(doctors);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 const filterDoctors = async (req, res) => {
   try {
     // get user from request
@@ -803,4 +825,5 @@ module.exports = {
   getHealthRecords,
   changePassword,
   deleteMedicalHistory,
+  getMyDoctors,
 };

@@ -131,6 +131,7 @@ const viewAllContracts = async (req, res) => {
 };
 
 const acceptContract = async (req, res) => {
+  console.log("MATETNAYYEL ACCEPT");
   const { _id } = req.body;
   const { username } = req.user;
   try {

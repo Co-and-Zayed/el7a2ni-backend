@@ -22,6 +22,7 @@ const {
   resetPassword,
   getHealthRecords,
   changePassword,
+  getMyDoctors,
 } = require("./patientController");
 
 const { authenticateToken } = require("../../../../routes/auth/authController");
@@ -44,6 +45,8 @@ const {
 //GET list of all doctors or doctors by searching name and/or speciality
 
 router.post("/getDoctors", authenticateToken("PATIENT"), getDoctors);
+
+router.post("/getMyDoctors", authenticateToken("PATIENT"), getMyDoctors);
 
 //POST filter doctors by speciality and/or availability on a specific date and time
 router.post("/filterDoctors", authenticateToken("PATIENT"), filterDoctors);
