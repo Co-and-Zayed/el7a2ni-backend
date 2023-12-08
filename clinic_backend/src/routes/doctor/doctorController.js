@@ -2,6 +2,8 @@ const appointmentModel = require("../../../../models/appointmentModel");
 const doctorModel = require("../../../../models/doctorModel");
 const patientModel = require("../../../../models/patientModel");
 const contractModel = require("../../../../models/contractModel");
+const prescriptionsModel = require("../../../../models/prescriptionsModel.js");
+const medicineModel = require("../../../../models/medicineModel");
 
 //GET a patient's information and health records
 const getPatientInfo = async (req, res) => {
@@ -259,19 +261,33 @@ const getAllPrescriptions = async (req, res) => {
 const updatePrescriptionDosage = async (req, res) => {
   const prescriptionID = req.body.prescriptionID;
   const updatedDosage = req.body.dosage;
-  const medicineName = req.body.medicine;
+  const medicineName = req.body.medicineName; // Convert to lowercase and trim whitespace
 
   try {
     // Find the prescription by ID
-    const prescription = prescriptionsModel.findById(prescriptionID);
+    const prescription = await prescriptionsModel.findById(prescriptionID);
+
+    if (!prescription) {
+      return res.status(404).json({ error: "Prescription not found" });
+    }
 
     // Find the medicine in the prescription
     const medicine = prescription.medicines.find(
       (m) => m.name === medicineName
     );
 
+    // Check if the medicine was found
+    if (!medicine) {
+      return res
+        .status(404)
+        .json({ error: "Medicine not found in the prescription" });
+    }
+
     // Update the dosage
     medicine.dosage = updatedDosage;
+
+    // Save the updated prescription
+    await prescription.save();
 
     res.status(200).json({
       message: "Prescriptions Dosage Updated Successfully",
@@ -283,17 +299,20 @@ const updatePrescriptionDosage = async (req, res) => {
 };
 
 const addPrescription = async (req, res) => {
-  const prescriptionID = req.body.prescriptionID;
-  const dosage = req.body.dosage;
-  const medicineName = req.body.medicine;
-
+  const prescription = new prescriptionsModel({
+    patientUsername: req.body.patientUsername,
+    patientName: req.body.patientName,
+    doctorUsername: req.body.doctorUsername,
+    doctorName: req.body.doctorName,
+    date: Date.now(),
+    filled: false,
+    medicines: req.body.medicines,
+  });
   try {
-    res.status(200).json({
-      message: "Prescriptions Added Successfully",
-      prescription,
-    });
+    const newPrescription = await prescription.save();
+    res.status(200).json(newPrescription);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ message: "Error creating a prescription" });
   }
 };
 

@@ -15,6 +15,7 @@ const {
   addHealthRecordForPatient,
   changePassword,
   getAllPrescriptions,
+  updatePrescriptionDosage,
 } = require("./doctorController");
 const { getAppointments } = require("../appointment/appointmentController");
 

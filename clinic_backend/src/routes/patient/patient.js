@@ -105,7 +105,7 @@ router.post(
 );
 router.post(
   "/viewSubscribedPackage",
-  authenticateToken("PATIENT"),
+  //authenticateToken("PATIENT"),
   viewSubscribedPackage
 );
 router.post(

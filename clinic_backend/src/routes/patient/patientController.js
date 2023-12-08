@@ -5,6 +5,7 @@ const Appointment = require("../../../../models/appointmentModel.js");
 const patientModel = require("../../../../models/patientModel.js");
 const packageModel = require("../../../../models/packageModel.js");
 const familyMembersModel = require("../../../../models/familyMembersModel.js");
+const prescriptionsModel = require("../../../../models/prescriptionsModel.js");
 const { getBucketName } = require("../../../../utils/getBucketName.js");
 
 //GET list of all doctors or doctors by searching name and/or speciality

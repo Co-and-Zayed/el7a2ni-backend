@@ -1,5 +1,7 @@
 const pharmacistModel = require("../../../../models/pharmacistModel");
 const contractModel = require("../../../../models/contractModel");
+const medicineModel = require("../../../../models/medicineModel");
+const salesModel = require("../../../../models/salesModel");
 
 const viewAllContracts = async (req, res) => {
   const { username } = req.user;
@@ -77,9 +79,74 @@ const resetPassword = async (req, res) => {
   });
 };
 
+const archiveMedicine = async (req, res) => {
+  const { _id } = req.body;
+
+  try {
+    const medicine = await medicineModel.findOneAndUpdate(
+      { _id: _id },
+      { status: "ARCHIVED" },
+      { new: true }
+    );
+
+    res.status(200).json(medicine);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+const unarchiveMedicine = async (req, res) => {
+  const { _id } = req.body;
+
+  try {
+    const medicine = await medicineModel.findOneAndUpdate(
+      { _id: _id },
+      { status: "AVAILABLE" },
+      { new: true }
+    );
+
+    res.status(200).json(medicine);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+const viewSalesReport = async (req, res) => {
+  const monthNumber = req.body.month;
+
+  // Validate month number (1 to 12)
+  if (monthNumber < 1 || monthNumber > 12) {
+    return res.status(400).json({ error: "Invalid month number" });
+  }
+
+  // Assuming 'monthNumber' is a number representing the month (1 to 12)
+  const startOfMonth = new Date(new Date().getFullYear(), monthNumber - 1, 1);
+  const endOfMonth = new Date(
+    new Date(startOfMonth).setMonth(startOfMonth.getMonth() + 1)
+  );
+
+  try {
+    const sales = await salesModel.find({
+      date: {
+        $gte: startOfMonth,
+        $lt: endOfMonth,
+      },
+    });
+
+    res.status(200).json(sales);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   resetPassword,
   viewAllContracts,
   acceptContract,
   rejectContract,
+  archiveMedicine,
+  unarchiveMedicine,
+  viewSalesReport,
 };
