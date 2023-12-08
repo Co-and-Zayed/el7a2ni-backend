@@ -202,6 +202,45 @@ const payWithWallet = async (req, res) => {
   }
 };
 
+// Refund Money to Wallet
+const refundToWallet = async (req, res) => {
+  try {
+    const { appointmentId } = req.body;
+    const user = req.user;
+
+    if (!user) {
+      res.status(400).json({ message: "Valid user is required" });
+      return;
+    }
+
+    const patient = await patientModel.findOne({ username: user.username });
+
+    if (!patient) {
+      res.status(404).json({ message: "Patient not found" });
+      return;
+    }
+
+    const appointment = await Appointment.findById({ _id: appointmentId });
+
+    patient.wallet = patient.wallet + amount;
+    var result = await patient.save();
+
+    // update patient
+    // var result = await patientModel.updateOne(
+    //   { 'username': patient.username },
+    //   { 'wallet': patient.wallet }
+    // );
+    console.log("result", result);
+
+    res
+      .status(200)
+      .json({ message: "Money deducted successfully", user: patient });
+  } catch (error) {
+    console.error("Error deducting money:", error);
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
+};
+
 const resetPassword = async (req, res) => {
   const { password } = req.body;
   const user = req.user;
@@ -774,6 +813,190 @@ const getHealthRecords = async (req, res) => {
   }
 };
 
+//PUT Patient can cancel appointment
+const cancelAppointment = async (req, res) => {
+  const { _id } = req.body;
+  try {
+    const appointment = await Appointment.findOneAndUpdate(
+      { _id: _id },
+      { status: "CANCELLED" },
+      { new: true }
+    );
+    const dateObject = new Date(appointment.date);
+    const dateOnly = dateObject.toISOString().split("T")[0];
+    const time = dateObject.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const doctor = await doctorModel.findById(appointment.doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Find the slot in the doctor's model
+    const slot = doctor.slots.find((slot) => {
+      slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        slot.booked;
+    });
+
+    if (!slot) {
+      return res.status(400).json({ message: "Slot not available" });
+    }
+
+    // Set the slot as free to be booked again
+    slot.booked = false;
+
+    // Save the updated doctor with the marked slot
+    await doctor.save();
+
+    res.status(200).json(appointment, "Appoinntment Cancelled Successfully");
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+// PUT Patient can reschedule appointment
+const rescheduleAppointment = async (req, res) => {
+  const { date, doctorId, _id } = req.body;
+  const { patientId, patientType } = req.body;
+
+  const dateObject = new Date(date);
+
+  const dateOnly = dateObject.toISOString().split("T")[0];
+  const time = dateObject.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  try {
+    const doctor = await doctorModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Find the slot in the doctor's model
+    const newSlot = doctor.slots.find(
+      (slot) =>
+        slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        !slot.booked
+    );
+
+    if (!newSlot) {
+      return res.status(400).json({ message: "Slot not available" });
+    }
+
+    // Set the new slot as booked
+    newSlot.booked = true;
+
+    const appointment = await Appointment.findOneAndUpdate(
+      { _id: _id },
+      { status: "RESCHEDULED" },
+      { new: true }
+    );
+
+    const dateObject = new Date(appointment.date);
+    const dateOnly = dateObject.toISOString().split("T")[0];
+    const time = dateObject.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    // Find the slot in the doctor's model
+    const slot = doctor.slots.find((slot) => {
+      slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        slot.booked;
+    });
+
+    if (!slot) {
+      return res.status(400).json({ message: "Old Slot not available" });
+    }
+
+    // Set the slot as free to be booked again
+    slot.booked = false;
+
+    // Book the new appointment
+    const newAppointment = new Appointment({
+      patientId: patientId,
+      date: date,
+      doctorId: doctorId,
+      status: "UPCOMING",
+      patientType: patientType,
+    });
+
+    // Save the new appointment
+    const savedAppointment = await newAppointment.save();
+
+    // Save the updated doctor with the marked slot
+    await doctor.save();
+
+    res.status(200).json(savedAppointment);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+// PUT Patient can schedule a follow-UP appointment
+const followUPAppointment = async (req, res) => {
+  const { date, doctorId, _id } = req.body;
+  const { patientId, patientType } = req.body;
+
+  const dateObject = new Date(date);
+
+  const dateOnly = dateObject.toISOString().split("T")[0];
+  const time = dateObject.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  try {
+    const doctor = await doctorModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Find the slot in the doctor's model
+    const newSlot = doctor.slots.find(
+      (slot) =>
+        slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        !slot.booked
+    );
+
+    if (!newSlot) {
+      return res.status(400).json({ message: "Slot not available" });
+    }
+
+    // Set the new slot as booked
+    newSlot.booked = true;
+
+    // Book the new appointment
+    const newAppointment = new Appointment({
+      patientId: patientId,
+      date: date,
+      doctorId: doctorId,
+      status: "UPCOMING",
+      patientType: patientType,
+    });
+
+    // Save the new appointment
+    const savedAppointment = await newAppointment.save();
+
+    // Save the updated doctor with the marked slot
+    await doctor.save();
+
+    res.status(200).json(savedAppointment);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
 /*
   REMINDER TO ADD DATE CHECK WITH THE START OF EVERY SESSION IN ORDER TO CHANEG THE STATUS OF THE SUBSCRIPTION WHEN NEEDED
   CASES:
@@ -803,4 +1026,6 @@ module.exports = {
   getHealthRecords,
   changePassword,
   deleteMedicalHistory,
+  cancelAppointment,
+  rescheduleAppointment,
 };

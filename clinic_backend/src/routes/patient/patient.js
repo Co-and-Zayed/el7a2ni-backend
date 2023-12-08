@@ -22,6 +22,8 @@ const {
   resetPassword,
   getHealthRecords,
   changePassword,
+  cancelAppointment,
+  rescheduleAppointment,
 } = require("./patientController");
 
 const { authenticateToken } = require("../../../../routes/auth/authController");
@@ -142,5 +144,11 @@ router.post("/resetPassword", authenticateToken("PATIENT"), resetPassword);
 router.get("/getHealthRecords", authenticateToken("PATIENT"), getHealthRecords);
 // Change Password
 router.post("/changePassword", authenticateToken("PATIENT"), changePassword);
+
+// Cancel Appointment
+router.put("/cancelAppointment", authenticateToken("PATIENT"), cancelAppointment)
+
+// Reschedule Appointment
+router.put("/rescheduleAppointment", authenticateToken("PATIENT"), rescheduleAppointment)
 
 module.exports = router;

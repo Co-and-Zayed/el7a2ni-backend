@@ -14,6 +14,9 @@ const {
   rejectContract,
   addHealthRecordForPatient,
   changePassword,
+  cancelAppointment,
+  rescheduleAppointment,
+  chooseSlots,
 } = require("./doctorController");
 const { getAppointments } = require("../appointment/appointmentController");
 
@@ -22,6 +25,27 @@ router.post("/getPatientInfo", authenticateToken("DOCTOR"), getPatientInfo);
 
 //get list of all patients given doctor's email
 router.post("/getPatients", authenticateToken("DOCTOR"), getPatients);
+
+//PUT Doctor can choose slots
+router.put(
+  "/chooseSlots",
+  // authenticateToken("DOCTOR"),
+  chooseSlots
+);
+
+//PUT Doctor can cancel appointment
+router.put( 
+  "/cancelAppointment",
+  // authenticateToken("DOCTOR"),
+  cancelAppointment
+);
+
+//PUT Doctor can reschedule appointment
+router.put(
+  "/rescheduleAppointment",
+  // authenticateToken("DOCTOR"),
+  rescheduleAppointment
+);
 
 //GET patients by searching name find({name : req.body.name})
 router.get(

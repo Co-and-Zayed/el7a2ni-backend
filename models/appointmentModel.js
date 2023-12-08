@@ -14,13 +14,10 @@ const appointmentSchema = new Schema({
     type: Date,
     required: true,
   },
-  // time:{
-  //     type: String,
-  //     required: true,
-  // },
   status: {
     type: String,
-    enum: ["UPCOMING", "CANCELLED", "COMPLETED"],
+    enum: ["UPCOMING", "CANCELLED", "COMPLETED", "RESCHEDULED"],
+    default: "UPCOMING",
     required: true,
   },
   patientType: {
@@ -29,10 +26,15 @@ const appointmentSchema = new Schema({
     default: "PATIENT",
   },
 });
-// Deirive time from date
+
+// Derive time from date
 appointmentSchema.virtual("time").get(function () {
-  return this.date.toLocaleTimeString();
+  return this.date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 });
+
 
 const appointmentModel = mongoose.model("Appointment", appointmentSchema);
 module.exports = appointmentModel;

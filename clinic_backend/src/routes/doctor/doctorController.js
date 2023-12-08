@@ -2,6 +2,7 @@ const appointmentModel = require("../../../../models/appointmentModel");
 const doctorModel = require("../../../../models/doctorModel");
 const patientModel = require("../../../../models/patientModel");
 const contractModel = require("../../../../models/contractModel");
+const { create } = require("../../../../models/refreshTokensModel");
 
 //GET a patient's information and health records
 const getPatientInfo = async (req, res) => {
@@ -63,6 +64,152 @@ const getUpcomingAptmnts = async (req, res) => {
 
     const patients = await patientModel.find({ email: { $in: patientEmails } });
     res.status(200).json(patients);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+//POST Doctor choose available slots
+const chooseSlots = async (req, res) => {
+  const { doctorId, startTime, endTime } = req.body;
+
+  try {
+    // Convert date and times to Date objects
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+
+    // Calculate the number of slots
+    const numberOfSlots = Math.ceil((endDate - startDate) / (60 * 60 * 1000));
+
+    // Find the doctor
+    const doctor = await doctorModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Generate slots
+    const slotsToAdd = Array.from({ length: numberOfSlots }, (_, index) => {
+      const slotDate = new Date(startDate);
+      slotDate.setHours(startDate.getHours() + index, 0, 0, 0);
+
+      const slotTime = slotDate.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      return {
+        date: slotDate.toISOString().split("T")[0],
+        time: slotTime,
+        booked: false,
+      };
+    });
+
+    // Check for existing slots in the doctor's document
+    const existingSlots = doctor.slots.map((slot) => ({
+      date: slot.date,
+      time: slot.time,
+    }));
+
+    // Filter out slots that already exist in the doctor's slots array
+    const uniqueSlots = slotsToAdd.filter(
+      (slotToAdd) =>
+        !existingSlots.some(
+          (existingSlot) =>
+            existingSlot.date.toISOString().split("T")[0] === slotToAdd.date &&
+            existingSlot.time === slotToAdd.time
+        )
+    );
+
+    // Add unique slots to the doctor's document
+    await doctorModel.findByIdAndUpdate(
+      doctorId,
+      { $addToSet: { slots: { $each: uniqueSlots } } },
+      { new: true }
+    );
+
+    // Fetch and return the updated doctor
+    const updatedDoctor = await doctorModel.findById(doctorId);
+    res.status(200).json(updatedDoctor);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+//PUT Doctor can cancel appointment
+const cancelAppointment = async (req, res) => {
+  const { _id } = req.body;
+  try {
+    const appointment = await appointmentModel.findOneAndUpdate(
+      { _id: _id },
+      { status: "CANCELLED" },
+      { new: true }
+    );
+
+    res.status(200).json(appointment);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+// PUT Doctor can reschedule appointment
+const rescheduleAppointment = async (req, res) => {
+  const { date, doctorId, _id } = req.body;
+  const { patientId, patientType } = req.body;
+
+  const dateObject = new Date(date);
+
+  const dateOnly = dateObject.toISOString().split("T")[0];
+  const time = dateObject.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  try {
+    const doctor = await doctorModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Find the slot in the doctor's model
+    const slot = doctor.slots.find(
+      (slot) =>
+        slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        !slot.booked
+    );
+
+    if (!slot) {
+      return res.status(400).json({ message: "Slot not available" });
+    }
+
+    // Set the slot as booked
+    slot.booked = true;
+
+    await appointmentModel.findOneAndUpdate(
+      { _id: _id },
+      { status: "RESCHEDULED" },
+      { new: true }
+    );
+    const newAppointment = new appointmentModel({
+      patientId: patientId,
+      date: date,
+      doctorId: doctorId,
+      status: "UPCOMING",
+      patientType: patientType,
+    });
+
+    // Save the new appointment
+    const savedAppointment = await newAppointment.save();
+
+    // Save the updated doctor with the marked slot
+    await doctor.save();
+
+    res.status(200).json(savedAppointment);
   } catch (error) {
     console.error(error);
     res.status(400).json({ message: "Server error" });
@@ -249,4 +396,7 @@ module.exports = {
   rejectContract,
   addHealthRecordForPatient,
   changePassword,
+  cancelAppointment,
+  rescheduleAppointment,
+  chooseSlots,
 };

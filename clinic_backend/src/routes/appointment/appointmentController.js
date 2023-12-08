@@ -4,11 +4,20 @@ const doctorModel = require("../../../../models/doctorModel");
 const familyMembersModel = require("../../../../models/familyMembersModel");
 const { default: mongoose } = require("mongoose");
 const userModel = require("../../../../models/userModel");
+const { create } = require("../../../../models/refreshTokensModel");
 
 // POST create a new appointment
 // Params: patientId, doctorId, date, status
 const createAppointment = async (req, res) => {
   const { patientId, doctorId, date, status, patientType } = req.body;
+
+  const dateObject = new Date(date);
+
+  const dateOnly = dateObject.toISOString().split("T")[0];
+  const time = dateObject.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (!patientId || !doctorId || !date || !status) {
     return res.status(400).json({
@@ -17,15 +26,39 @@ const createAppointment = async (req, res) => {
     });
   }
 
-  const appointment = new appointmentModel({
-    patientId: patientId,
-    doctorId: doctorId,
-    date: date,
-    status: status,
-    patientType: patientType,
-  });
-
   try {
+    const doctor = await doctorModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Find the slot in the doctor's model
+    const slot = doctor.slots.find(
+      (slot) =>
+        slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        !slot.booked
+    );
+
+    if (!slot) {
+      return res.status(400).json({ message: "Slot not available" });
+    }
+
+    // Set the slot as booked
+    slot.booked = true;
+
+    const appointment = new appointmentModel({
+      patientId: patientId,
+      doctorId: doctorId,
+      date: date,
+      status: status,
+      patientType: patientType,
+    });
+
+    // Save the updated doctor with the booked slot
+    await doctor.save();
+
     const newAppointment = await appointment.save();
 
     res.status(200).json({
@@ -105,6 +138,22 @@ const getAppointments = async (req, res) => {
         };
       }
     }
+
+ // Loop through appointments to check and update status
+for (let i = 0; i < appointments.length; i++) {
+  const appointment = appointments[i];
+
+  // Combine the date and virtual time for the appointment
+  const currDate = new Date();
+  const appointmentDate = new Date(appointment.date);
+
+  // Check if the appointment date and time have passed
+  if (appointmentDate < currDate && !["CANCELLED", "RESCHEDULED","COMPLETED"].includes(appointment.status)) {
+    // Update the status to "COMPLETED"
+    await appointmentModel.findByIdAndUpdate(appointment._id, { status: "COMPLETED" }, { new: true });
+    appointments[i].status = "COMPLETED"; // Update in-memory data
+  }
+}
 
     console.log("CHECKPOINT 3");
     const appointmentsWithTime = appointments.map((appointment) => {
