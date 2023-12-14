@@ -261,19 +261,19 @@ const getAllPrescriptions = async (req, res) => {
 const updatePrescriptionDosage = async (req, res) => {
   const prescriptionID = req.body.prescriptionID;
   const updatedDosage = req.body.dosage;
-  const medicineName = req.body.medicineName; // Convert to lowercase and trim whitespace
+  const medicineID = req.body.medicineID; // Convert to lowercase and trim whitespace
 
   try {
     // Find the prescription by ID
     const prescription = await prescriptionsModel.findById(prescriptionID);
-
+    const medicineInModel = await medicineModel.findById(medicineID);
     if (!prescription) {
       return res.status(404).json({ error: "Prescription not found" });
     }
 
     // Find the medicine in the prescription
     const medicine = prescription.medicines.find(
-      (m) => m.name === medicineName
+      (m) => m.name === medicineInModel.name
     );
 
     // Check if the medicine was found
@@ -315,7 +315,73 @@ const addPrescription = async (req, res) => {
     res.status(500).json({ message: "Error creating a prescription" });
   }
 };
+const getAvailableMedicines = async (req, res) => {
+  try {
+    const medicines = await medicineModel.find({ status: "AVAILABLE" });
+    res.status(200).json(medicines);
+  } catch (err) {
+    res.status(500).json({ message: "Error creating a prescription" });
+  }
+};
 
+const addMedicineToPrescription = async (req, res) => {
+  const medicineID = req.body.id;
+  const dosage = req.body.dosage;
+  const quantity = req.body.quantity;
+  const duration = req.body.duration;
+  const name = req.body.name;
+  const prescriptionID = req.body.prescriptionID;
+  try {
+    const prescription = await prescriptionsModel.findById(prescriptionID);
+
+    prescription.medicines.push({
+      medicineID: medicineID,
+      name: name,
+      dosage: dosage,
+      quantity: quantity,
+      duration: duration,
+    });
+
+    // Save the updated patient data
+    await prescription.save();
+
+    res.status(200).json(prescription);
+  } catch (err) {
+    res.status(500).json({ message: "Error adding to a prescription" });
+  }
+};
+const deleteMedicineFromPrescription = async (req, res) => {
+  const medicineID = req.body.id;
+  const prescriptionID = req.body.prescriptionID;
+  try {
+    const prescription = await prescriptionsModel.findById(prescriptionID);
+    prescription.medicines = prescription.medicines.filter(
+      (m) => m.medicineID.toString() !== medicineID
+    );
+
+    // Save the updated patient data
+    await prescription.save();
+
+    res.status(200).json(prescription);
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting to a prescription" });
+  }
+};
+//update a prescription
+const updatePrescription = async (req, res) => {
+  const id = req.params.id;
+  try {
+    const updatedPrescription = await prescriptionsModel.findOneAndUpdate(
+      { _id: id },
+      {
+        ...req.body,
+      }
+    );
+    res.status(200).json(updatedPrescription);
+  } catch (err) {
+    res.status(500).json({ message: "Error updating prescription" });
+  }
+};
 module.exports = {
   getPatientInfo,
   getPatients,
@@ -332,4 +398,8 @@ module.exports = {
   getAllPrescriptions,
   updatePrescriptionDosage,
   addPrescription,
+  getAvailableMedicines,
+  addMedicineToPrescription,
+  deleteMedicineFromPrescription,
+  updatePrescription,
 };

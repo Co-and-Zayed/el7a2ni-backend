@@ -16,6 +16,10 @@ const {
   changePassword,
   getAllPrescriptions,
   updatePrescriptionDosage,
+  getAvailableMedicines,
+  addMedicineToPrescription,
+  deleteMedicineFromPrescription,
+  updatePrescription,
 } = require("./doctorController");
 const { getAppointments } = require("../appointment/appointmentController");
 
@@ -77,4 +81,25 @@ router.post(
 // Change Password
 router.post("/changePassword", authenticateToken("DOCTOR"), changePassword);
 
+router.get(
+  "/getAvailableMedicines",
+  //authenticateToken("DOCTOR"),
+  getAvailableMedicines
+);
+router.post(
+  "/addMedicineToPrescription",
+  //authenticateToken("DOCTOR"),
+  addMedicineToPrescription
+);
+
+router.post(
+  "/deleteMedicineFromPrescription",
+  //authenticateToken("DOCTOR"),
+  deleteMedicineFromPrescription
+);
+router.post(
+  "/updatePrescription",
+  //authenticateToken("DOCTOR"),
+  updatePrescription
+);
 module.exports = router;

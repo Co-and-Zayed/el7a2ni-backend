@@ -140,6 +140,52 @@ const viewSalesReport = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// const filterSalesReport = async (req, res) => {
+//   const { month, medicine, date } = req.body;
+
+//   // Validate month number (1 to 12)
+//   if (month && (month < 1 || month > 12)) {
+//     return res.status(400).json({ error: "Invalid month number" });
+//   }
+
+//   // Validate date format if provided
+//   if (date) {
+//     const isValidDate = !isNaN(Date.parse(date));
+//     if (!isValidDate) {
+//       return res.status(400).json({ error: "Invalid date format" });
+//     }
+//   }
+
+//   // Build query based on filters
+//   const query = {};
+//   if (month) {
+//     const startOfMonth = new Date(new Date().getFullYear(), month - 1, 1);
+//     const endOfMonth = new Date(
+//       new Date(startOfMonth).setMonth(startOfMonth.getMonth() + 1)
+//     );
+//     query.date = {
+//       $gte: startOfMonth,
+//       $lt: endOfMonth,
+//     };
+//   }
+
+//   if (medicine) {
+//     query.medicine = medicine; // Assuming 'medicine' is the field to filter by
+//   }
+
+//   if (date) {
+//     query.date = new Date(date);
+//   }
+
+//   try {
+//     const sales = await salesModel.find(query);
+
+//     res.status(200).json(sales);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 
 module.exports = {
   resetPassword,
@@ -149,4 +195,5 @@ module.exports = {
   archiveMedicine,
   unarchiveMedicine,
   viewSalesReport,
+  // filterSalesReport,
 };

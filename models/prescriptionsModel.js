@@ -29,6 +29,11 @@ const prescriptionsSchema = new Schema(
     },
     medicines: [
       {
+        medicineID: {
+          type: Schema.Types.ObjectId,
+          ref: "medicine",
+          required: true,
+        },
         name: {
           type: String,
           required: true,
