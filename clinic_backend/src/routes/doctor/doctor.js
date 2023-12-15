@@ -15,7 +15,6 @@ const {
   addHealthRecordForPatient,
   changePassword,
   getAllPrescriptions,
-  updatePrescriptionDosage,
   getAvailableMedicines,
   addMedicineToPrescription,
   deleteMedicineFromPrescription,
@@ -71,12 +70,6 @@ router.post(
   "/getAllPrescriptions",
   //authenticateToken("DOCTOR"),
   getAllPrescriptions
-);
-
-router.post(
-  "/updatePrescriptionDosage",
-  //authenticateToken("DOCTOR"),
-  updatePrescriptionDosage
 );
 
 // Change Password

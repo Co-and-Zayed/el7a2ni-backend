@@ -43,6 +43,7 @@ const createPrescription = async (req, res) => {
 //update a prescription
 const updatePrescription = async (req, res) => {
   const id = req.params.id;
+
   try {
     const updatedPrescription = await prescriptionsModel.findOneAndUpdate(
       { _id: id },
