@@ -20,6 +20,7 @@ const {
   addMedicineToPrescription,
   deleteMedicineFromPrescription,
   updatePrescription,
+  addPrescription,
 } = require("./doctorController");
 const { getAppointments } = require("../appointment/appointmentController");
 
@@ -101,5 +102,11 @@ router.post(
   "/updatePrescription",
   //authenticateToken("DOCTOR"),
   updatePrescription
+);
+
+router.post(
+  "/addPrescription",
+  //authenticateToken("DOCTOR"),
+  addPrescription
 );
 module.exports = router;

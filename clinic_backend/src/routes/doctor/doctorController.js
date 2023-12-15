@@ -249,10 +249,7 @@ const getAllPrescriptions = async (req, res) => {
       res.status(404).json({ message: " No Prescriptions Found" });
     }
 
-    res.status(200).json({
-      message: "Prescriptions Retrieved Successfully",
-      prescription,
-    });
+    res.status(200).json(prescription);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -299,9 +296,12 @@ const updatePrescriptionDosage = async (req, res) => {
 };
 
 const addPrescription = async (req, res) => {
+  const patient = await patientModel.findOne({
+    username: req.body.patientUsername,
+  });
   const prescription = new prescriptionsModel({
     patientUsername: req.body.patientUsername,
-    patientName: req.body.patientName,
+    patientName: patient.name,
     doctorUsername: req.body.doctorUsername,
     doctorName: req.body.doctorName,
     date: Date.now(),
@@ -329,14 +329,13 @@ const addMedicineToPrescription = async (req, res) => {
   const dosage = req.body.dosage;
   const quantity = req.body.quantity;
   const duration = req.body.duration;
-  const name = req.body.name;
   const prescriptionID = req.body.prescriptionID;
   try {
     const prescription = await prescriptionsModel.findById(prescriptionID);
-
+    const medicine = await medicineModel.findById(medicineID);
     prescription.medicines.push({
       medicineID: medicineID,
-      name: name,
+      name: medicine.name,
       dosage: dosage,
       quantity: quantity,
       duration: duration,
