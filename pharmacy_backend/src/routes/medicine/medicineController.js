@@ -55,6 +55,7 @@ const createMedicine = async (req, res) => {
       otherActiveIngredients,
       medicinalUse,
       availableQuantity,
+      type,
     } = req.body;
 
     console.log("OTHER INGREDIETNTS");
@@ -72,6 +73,7 @@ const createMedicine = async (req, res) => {
       otherActiveIngredients: newOther,
       medicinalUse: newUses,
       availableQuantity,
+      type,
     });
     const medicine = await newMedicine.save();
     console.log("BALABIZO 3");

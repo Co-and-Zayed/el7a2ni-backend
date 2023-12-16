@@ -76,5 +76,54 @@ const addToCartFromPrescription = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+const getMedicinesPatient = async (req, res) => {
+  const patientID = req.body.id;
+  try {
+    const patient = await patientModel.findById(patientID);
+    const prescriptions = await prescriptionsModel.find({
+      patientUsername: patient.username,
+    });
+    const allMedicines = await medicineModel.find();
+    let responseMedicines = [];
 
-module.exports = { resetPassword, addToCartFromPrescription };
+    for (let i = 0; i < allMedicines.length; i++) {
+      let found = false;
+
+      if (allMedicines[i].type === "PRESCRIPTION") {
+        for (let j = 0; j < prescriptions.length; j++) {
+          for (let k = 0; k < prescriptions[j].medicines.length; k++) {
+            if (
+              allMedicines[i]._id.equals(
+                prescriptions[j].medicines[k].medicineID
+              )
+            ) {
+              const responsePerMedicine = { ...allMedicines[i].toObject() };
+              responsePerMedicine.remainingQuantity =
+                prescriptions[j].medicines[k].remainingQuantity;
+              responseMedicines.push(responsePerMedicine);
+              found = true;
+              break;
+            }
+          }
+          if (found) {
+            break;
+          }
+        }
+      }
+
+      if (!found) {
+        responseMedicines.push(allMedicines[i]);
+      }
+    }
+
+    res.status(200).json(responseMedicines);
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  resetPassword,
+  addToCartFromPrescription,
+  getMedicinesPatient,
+};
