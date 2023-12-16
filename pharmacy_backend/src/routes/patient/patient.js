@@ -17,7 +17,7 @@ router.post(
 
 router.post(
   "/getMedicinesPatient",
-  //authenticateToken("PATIENT"),
+  authenticateToken("PATIENT"),
   getMedicinesPatient
 );
 module.exports = router;
