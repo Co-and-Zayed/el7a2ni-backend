@@ -285,7 +285,9 @@ const updatePrescription = async (req, res) => {
     // Update the dosage
     if (!(updatedDosage === "")) medicine.dosage = updatedDosage;
     if (!(updatedDuration === "")) medicine.duration = updatedDuration;
-    if (!(updatedQuantity === "")) medicine.quantity = updatedQuantity;
+    if (!(updatedQuantity === "")) {medicine.quantity = updatedQuantity;
+      medicine.remainingQuantity = updatedQuantity;
+    }
 
     // Save the updated prescription
     await prescription.save();
