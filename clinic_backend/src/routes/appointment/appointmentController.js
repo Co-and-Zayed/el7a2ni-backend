@@ -98,38 +98,38 @@ const getAppointments = async (req, res) => {
     var appointments = [];
     console.log("CHECKPOINT 1");
     if (type === "PATIENT") {
-      const patient = await patientModel.find(id).select("-password").lean();
+      const patient = await patientModel.findOne(id).select("-password").lean();
       appointments = await appointmentModel
         .find({ patientId: id })
         .lean()
         .select("-patientId");
-        
-        // console.log("Patient", patient);
-        // const familyMembers = await patient.familyMembers;
-        // for (let i = 0; i < familyMembers.length; i++) {
-        //   const familyMember = familyMembers[i];
-        //   const familyMemberAppointments = await appointmentModel
-        //     .find({ patientId: familyMember.id })
-        //     .lean()
-        //     .select("-patientId");
-  
-        //   for (let i = 0; i < familyMemberAppointments.length; i++) {
-        //     const appointment = familyMemberAppointments[i];
-  
-        //     const doctor = await doctorModel
-        //       .findById(appointment.doctorId)
-        //       .select("-password")
-        //       .lean();
-  
-        //     familyMemberAppointments[i] = {
-        //       ...appointment,
-        //       patient: familyMember,
-        //       doctor,
-        //       time: appointment.time,
-        //     };
-        //   }
-        //   appointments.push(...familyMemberAppointments);
-        // }
+
+      // console.log("Patient", patient);
+      // const familyMembers = await patient.familyMembers;
+      // for (let i = 0; i < familyMembers.length; i++) {
+      //   const familyMember = familyMembers[i];
+      //   const familyMemberAppointments = await appointmentModel
+      //     .find({ patientId: familyMember.id })
+      //     .lean()
+      //     .select("-patientId");
+
+      //   for (let i = 0; i < familyMemberAppointments.length; i++) {
+      //     const appointment = familyMemberAppointments[i];
+
+      //     const doctor = await doctorModel
+      //       .findById(appointment.doctorId)
+      //       .select("-password")
+      //       .lean();
+
+      //     familyMemberAppointments[i] = {
+      //       ...appointment,
+      //       patient: familyMember,
+      //       doctor,
+      //       time: appointment.time,
+      //     };
+      //   }
+      //   appointments.push(...familyMemberAppointments);
+      // }
       for (let i = 0; i < appointments.length; i++) {
         const appointment = appointments[i];
 
@@ -240,7 +240,7 @@ const updateAppointment = async (req, res) => {
   }
   res.json({
     updatedAppointment,
-    user: patientModel.findOne({ username: req.user.username }),
+    // ,user: patientModel.findOne({ username: req.user.username }),
   });
 };
 

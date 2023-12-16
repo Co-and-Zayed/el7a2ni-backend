@@ -1014,6 +1014,71 @@ const followUpAppointment = async (req, res) => {
   }
 };
 
+/*
+console.log("CHECKPOINT 1");
+    if (type === "PATIENT") {
+      const patient = await patientModel.find(id).select("-password").lean();
+      appointments = await appointmentModel
+        .find({ patientId: id })
+        .lean()
+        .select("-patientId");
+
+      for (let i = 0; i < appointments.length; i++) {
+        const appointment = appointments[i];
+
+        const doctor = await doctorModel
+          .findById(appointment.doctorId)
+          .select("-password")
+          .lean();
+
+        appointments[i] = {
+          ...appointment,
+          patient,
+          doctor,
+          time: appointment.time,
+        };
+      }
+    } 
+    }
+
+    // Loop through appointments to check and update status
+    for (let i = 0; i < appointments.length; i++) {
+      const appointment = appointments[i];
+
+      // Combine the date and virtual time for the appointment
+      const currDate = new Date();
+      const appointmentDate = new Date(appointment.date);
+
+      // Check if the appointment date and time have passed
+      if (
+        appointmentDate < currDate &&
+        !["CANCELLED", "RESCHEDULED", "COMPLETED"].includes(appointment.status)
+      ) {
+        // Update the status to "COMPLETED"
+        await appointmentModel.findByIdAndUpdate(
+          appointment._id,
+          { status: "COMPLETED" },
+          { new: true }
+        );
+        appointments[i].status = "COMPLETED"; // Update in-memory data
+      }
+    }
+
+    console.log("CHECKPOINT 3");
+    const appointmentsWithTime = appointments.map((appointment) => {
+      return {
+        ...appointment, // Use toObject() to get the document data
+        time: appointment.time, // Include the virtual "time" property
+      };
+    });
+    console.log("CHECKPOINT 4");
+    // sort appointments by date
+    appointmentsWithTime.sort((a, b) => {
+      return new Date(a.date) - new Date(b.date);
+    });
+    res.json(appointmentsWithTime);
+*/
+
 const getFamilyMemberAppointments = async (req, res) => {
   const username = req.user.username;
 
@@ -1024,22 +1089,92 @@ const getFamilyMemberAppointments = async (req, res) => {
 
     for (let i = 0; i < familyMembers.length; i++) {
       let familyPatientAppointments = [];
+      const familyMember = familyMembers[i];
+
+      var fmPatient;
 
       if (familyMembers[i].type == "EXISTING") {
-        const familyPatient = await patientModel.findById(familyMembers[i].id);
+        const familyPatient = await patientModel
+          .findById(familyMembers[i].id)
+          .lean();
         familyPatientAppointments = await Appointment.find({
           patientId: familyPatient._id,
-        });
+        })
+          .lean()
+          .select("-patientId");
+        fmPatient = familyPatient;
+
+        // add relation
+        fmPatient.relation = familyMember.relation;
       } else {
-        const guest = await familyMembersModel.findById(familyMembers[i].id);
+        const guest = await familyMembersModel
+          .findById(familyMembers[i].id)
+          .lean();
         familyPatientAppointments = await Appointment.find({
           patientId: guest._id,
-        });
+        })
+          .lean()
+          .select("-patientId");
+        fmPatient = guest;
+
+        // add relation
+        fmPatient.relation = familyMember.relation;
+      }
+
+      for (let i = 0; i < familyPatientAppointments.length; i++) {
+        const appointment = familyPatientAppointments[i];
+
+        const doctor = await Doctor.findById(appointment.doctorId)
+          .select("-password")
+          .lean();
+
+        familyPatientAppointments[i] = {
+          ...appointment,
+          patient: fmPatient,
+          doctor,
+          time: appointment.time,
+        };
       }
 
       // Accumulate appointments for each family member
       appointments.push(...familyPatientAppointments);
     }
+
+    // Loop through appointments to check and update status
+    for (let i = 0; i < appointments.length; i++) {
+      const appointment = appointments[i];
+
+      // Combine the date and virtual time for the appointment
+      const currDate = new Date();
+      const appointmentDate = new Date(appointment.date);
+
+      // Check if the appointment date and time have passed
+      if (
+        appointmentDate < currDate &&
+        !["CANCELLED", "RESCHEDULED", "COMPLETED"].includes(appointment.status)
+      ) {
+        // Update the status to "COMPLETED"
+        await Appointment.findByIdAndUpdate(
+          appointment._id,
+          { status: "COMPLETED" },
+          { new: true }
+        );
+        appointments[i].status = "COMPLETED"; // Update in-memory data
+      }
+    }
+
+    console.log("CHECKPOINT 3");
+    const appointmentsWithTime = appointments.map((appointment) => {
+      return {
+        ...appointment, // Use toObject() to get the document data
+        time: appointment.time, // Include the virtual "time" property
+      };
+    });
+    console.log("CHECKPOINT 4");
+    // sort appointments by date
+    appointmentsWithTime.sort((a, b) => {
+      return new Date(a.date) - new Date(b.date);
+    });
 
     // Send the response after the loop
     res.status(200).json(appointments);
@@ -1048,8 +1183,6 @@ const getFamilyMemberAppointments = async (req, res) => {
     res.status(400).json({ message: "Server error" });
   }
 };
-
-    
 
 /*
   REMINDER TO ADD DATE CHECK WITH THE START OF EVERY SESSION IN ORDER TO CHANEG THE STATUS OF THE SUBSCRIPTION WHEN NEEDED
@@ -1084,5 +1217,5 @@ module.exports = {
   rescheduleAppointment,
   refundToWallet,
   followUpAppointment,
-  getFamilyMemberAppointments
+  getFamilyMemberAppointments,
 };
