@@ -112,34 +112,57 @@ const unarchiveMedicine = async (req, res) => {
   }
 };
 
+// const viewSalesReport = async (req, res) => {
+//   const monthNumber = req.body.month;
+
+//   // Validate month number (1 to 12)
+//   if (monthNumber < 1 || monthNumber > 12) {
+//     return res.status(400).json({ error: "Invalid month number" });
+//   }
+
+//   // Assuming 'monthNumber' is a number representing the month (1 to 12)
+//   const startOfMonth = new Date(new Date().getFullYear(), monthNumber - 1, 1);
+//   const endOfMonth = new Date(
+//     new Date(startOfMonth).setMonth(startOfMonth.getMonth() + 1)
+//   );
+
+//   try {
+//     const sales = await salesModel.find({
+//       date: {
+//         $gte: startOfMonth,
+//         $lt: endOfMonth,
+//       },
+//     });
+
+//     res.status(200).json(sales);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
 const viewSalesReport = async (req, res) => {
-  const monthNumber = req.body.month;
-
-  // Validate month number (1 to 12)
-  if (monthNumber < 1 || monthNumber > 12) {
-    return res.status(400).json({ error: "Invalid month number" });
-  }
-
-  // Assuming 'monthNumber' is a number representing the month (1 to 12)
-  const startOfMonth = new Date(new Date().getFullYear(), monthNumber - 1, 1);
-  const endOfMonth = new Date(
-    new Date(startOfMonth).setMonth(startOfMonth.getMonth() + 1)
-  );
-
   try {
-    const sales = await salesModel.find({
-      date: {
-        $gte: startOfMonth,
-        $lt: endOfMonth,
-      },
-    });
-
-    res.status(200).json(sales);
+    let salesReport = null;
+    let responseArray = [];
+    const sales = await salesModel.find({});
+    
+    for (let i = 0; i < sales.length; i++) {
+      salesReport = { ...sales[i].toObject() };
+      const medicine = await medicineModel.findById(sales[i].medicineId);
+      if(medicine){
+        salesReport.medicineName = medicine.name;
+        responseArray.push(salesReport);
+      }
+      
+    }
+    res.status(200).json(responseArray);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 // const filterSalesReport = async (req, res) => {
 //   const { month, medicine, date } = req.body;
 

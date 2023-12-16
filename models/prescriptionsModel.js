@@ -46,6 +46,10 @@ const prescriptionsSchema = new Schema(
           type: Number,
           required: true,
         },
+        remainingQuantity: {
+          type: Number,
+          required: true,
+        },
         duration: {
           type: String,
           required: true,

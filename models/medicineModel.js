@@ -37,6 +37,11 @@ const medicineSchema = new mongoose.Schema({
     enum: ["AVAILABLE", "ARCHIVED"],
     default: "AVAILABLE",
   },
+  type: {
+    type: String,
+    enum: ["OTC", "PRESCRIPTION"],
+    default: "OTC",
+  }
 });
 
 const medicineModel = mongoose.model("Medicine", medicineSchema);
