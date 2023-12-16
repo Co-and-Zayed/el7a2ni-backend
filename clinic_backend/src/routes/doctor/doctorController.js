@@ -342,6 +342,7 @@ const addMedicineToPrescription = async (req, res) => {
       name: medicine.name,
       dosage: dosage,
       quantity: quantity,
+      remainingQuantity: quantity,
       duration: duration,
     });
 
