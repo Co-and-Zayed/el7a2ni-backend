@@ -3,6 +3,10 @@ const doctorModel = require("../../../../models/doctorModel");
 const patientModel = require("../../../../models/patientModel");
 const contractModel = require("../../../../models/contractModel");
 const { create } = require("../../../../models/refreshTokensModel");
+const {
+  payWithWallet,
+  refundToWallet,
+} = require("../patient/patientController");
 
 //GET a patient's information and health records
 const getPatientInfo = async (req, res) => {
@@ -14,6 +18,61 @@ const getPatientInfo = async (req, res) => {
     res.status(200).json(patient);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+};
+
+const handleFollowUpAppointment = async (req, res) => {
+  const { appointmentId, patientId, doctorId, amount, approval } = req.body;
+
+  if (approval === "ACCEPTED") {
+    try {
+      payWithWallet(req, res);
+      const appointment = await appointmentModel.findOneAndUpdate(
+        { _id: appointmentId },
+        { status: "UPCOMING" },
+        { new: true }
+      );
+      res.status(200).json(appointment);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  } else {
+    // Reject the appointment and set the slot as free
+    try {
+      const appointment = await appointmentModel.findOneAndUpdate(
+        { _id: appointmentId },
+        { status: "REJECTED" },
+        { new: true }
+      );
+      const dateObject = new Date(appointment.date);
+
+      const dateOnly = dateObject.toISOString().split("T")[0];
+      const time = dateObject.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const doctor = await doctorModel.findById(appointment.doctorId);
+
+      // Find the slot in the doctor's model and set it to free again
+      const slot = doctor.slots.find(
+        (slot) =>
+          slot.date.toISOString().split("T")[0] === dateOnly &&
+          slot.time === time &&
+          slot.booked
+      );
+
+      if (!slot) {
+        return res.status(400).json({ message: "Slot not available" });
+      }
+
+      slot.booked = false;
+
+      await doctor.save();
+      res.status(200).json("Appointment approval is rejected");
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
   }
 };
 
@@ -148,7 +207,12 @@ const cancelAppointment = async (req, res) => {
       { new: true }
     );
 
-    res.status(200).json(appointment);
+    refundToWallet(req, res);
+
+    res.status(200).json({
+      appointment,
+      message: "Appointment cancelled Successfully & money refunded to wallet",
+    });
   } catch (error) {
     console.error(error);
     res.status(400).json({ message: "Server error" });
@@ -399,4 +463,5 @@ module.exports = {
   cancelAppointment,
   rescheduleAppointment,
   chooseSlots,
+  handleFollowUpAppointment,
 };

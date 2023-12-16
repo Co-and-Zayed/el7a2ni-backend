@@ -24,6 +24,8 @@ const {
   changePassword,
   cancelAppointment,
   rescheduleAppointment,
+  followUpAppointment,
+  getFamilyMemberAppointments
 } = require("./patientController");
 
 const { authenticateToken } = require("../../../../routes/auth/authController");
@@ -146,9 +148,33 @@ router.get("/getHealthRecords", authenticateToken("PATIENT"), getHealthRecords);
 router.post("/changePassword", authenticateToken("PATIENT"), changePassword);
 
 // Cancel Appointment
-router.put("/cancelAppointment", authenticateToken("PATIENT"), cancelAppointment)
+router.put(
+  "/cancelAppointment",
+  // authenticateToken("PATIENT"),
+  cancelAppointment
+);
 
 // Reschedule Appointment
-router.put("/rescheduleAppointment", authenticateToken("PATIENT"), rescheduleAppointment)
+router.put(
+  "/rescheduleAppointment",
+  authenticateToken("PATIENT"),
+  rescheduleAppointment
+);
+
+//Follow up Appointment
+router.post(
+  "/followUpAppointment",
+  // authenticateToken("PATIENT"),
+  followUpAppointment
+);
+
+// Get Family Members appointments
+
+router.get(
+  "/getFamilyMemberAppointments",
+  authenticateToken("PATIENT"),
+  getFamilyMemberAppointments
+);
+
 
 module.exports = router;

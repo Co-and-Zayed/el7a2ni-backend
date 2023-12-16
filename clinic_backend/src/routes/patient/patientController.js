@@ -163,28 +163,35 @@ const filterDoctors = async (req, res) => {
 // Deduct Money from Wallet
 const payWithWallet = async (req, res) => {
   try {
-    const { amount } = req.body;
-    const user = req.user;
+    const { patientId, doctorId, amount } = req.body;
+    // const user = req.user;
 
-    if (!user) {
-      res.status(400).json({ message: "Valid user is required" });
-      return;
-    }
+    // if (!user) {
+    //   res.status(400).json({ message: "Valid user is required" });
+    //   return;
+    // }
 
-    const patient = await patientModel.findOne({ username: user.username });
+    const patient = await patientModel.findOne({ _id: patientId });
 
     if (!patient) {
-      res.status(404).json({ message: "Patient not found" });
-      return;
+      return { message: "Patient not found" };
+    }
+
+    const doctor = await Doctor.findOne({ _id: doctorId });
+
+    if (!doctor) {
+      return { message: "Doctor not found" };
     }
 
     if (patient.wallet < amount) {
-      res.status(400).json({ message: "Not enough money in wallet" });
-      return;
+      return { message: "Not enough money in wallet" };
     }
 
     patient.wallet = patient.wallet - amount;
     var result = await patient.save();
+
+    doctor.wallet = doctor.wallet + amount;
+    var result = await doctor.save();
 
     // update patient
     // var result = await patientModel.updateOne(
@@ -193,37 +200,46 @@ const payWithWallet = async (req, res) => {
     // );
     console.log("result", result);
 
-    res
-      .status(200)
-      .json({ message: "Money deducted successfully", user: patient });
+    // res
+    //   .status(200)
+    //   .json({ message: "Money deducted successfully", user: patient });
   } catch (error) {
     console.error("Error deducting money:", error);
-    res.status(500).json({ message: "Internal server error", error: error });
+    return { message: "Internal server error", error: error };
   }
 };
 
 // Refund Money to Wallet
 const refundToWallet = async (req, res) => {
   try {
-    const { appointmentId } = req.body;
-    const user = req.user;
+    const { _id } = req.body;
+    // const user = req.user;
 
-    if (!user) {
-      res.status(400).json({ message: "Valid user is required" });
-      return;
-    }
+    // if (!user) {
+    //   return { message: "Valid user is required" };
+    // }
 
-    const patient = await patientModel.findOne({ username: user.username });
+    // const patient = await patientModel.findOne({ username: user.username });
+    const appointment = await Appointment.findById(_id);
+    console.log("appointment", appointment);
+
+    const patient = await patientModel.findById(appointment.patientId);
 
     if (!patient) {
-      res.status(404).json({ message: "Patient not found" });
-      return;
+      return { message: "Patient not found" };
     }
 
-    const appointment = await Appointment.findById({ _id: appointmentId });
-
-    patient.wallet = patient.wallet + amount;
+    patient.wallet = patient.wallet + appointment.price;
     var result = await patient.save();
+
+    const doctor = await Doctor.findById({ _id: appointment.doctorId });
+
+    if (!doctor) {
+      return { message: "Doctor not found" };
+    }
+
+    doctor.wallet = doctor.wallet - appointment.price;
+    var result = await doctor.save();
 
     // update patient
     // var result = await patientModel.updateOne(
@@ -231,13 +247,9 @@ const refundToWallet = async (req, res) => {
     //   { 'wallet': patient.wallet }
     // );
     console.log("result", result);
-
-    res
-      .status(200)
-      .json({ message: "Money deducted successfully", user: patient });
   } catch (error) {
     console.error("Error deducting money:", error);
-    res.status(500).json({ message: "Internal server error", error: error });
+    return { message: "Internal server error", error: error };
   }
 };
 
@@ -828,7 +840,7 @@ const cancelAppointment = async (req, res) => {
       hour: "2-digit",
       minute: "2-digit",
     });
-    const doctor = await doctorModel.findById(appointment.doctorId);
+    const doctor = await Doctor.findById(appointment.doctorId);
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
@@ -847,10 +859,15 @@ const cancelAppointment = async (req, res) => {
     // Set the slot as free to be booked again
     slot.booked = false;
 
+    var wallet = await refundToWallet(req, res);
+    if (wallet) {
+      return res.json(wallet);
+    }
+
     // Save the updated doctor with the marked slot
     await doctor.save();
 
-    res.status(200).json(appointment, "Appoinntment Cancelled Successfully");
+    res.status(200).json(appointment);
   } catch (error) {
     console.error(error);
     res.status(400).json({ message: "Server error" });
@@ -871,7 +888,7 @@ const rescheduleAppointment = async (req, res) => {
   });
 
   try {
-    const doctor = await doctorModel.findById(doctorId);
+    const doctor = await Doctor.findById(doctorId);
 
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
@@ -904,7 +921,7 @@ const rescheduleAppointment = async (req, res) => {
       hour: "2-digit",
       minute: "2-digit",
     });
-    // Find the slot in the doctor's model
+    // Find the old slot in the doctor's model and set it to available again
     const slot = doctor.slots.find((slot) => {
       slot.date.toISOString().split("T")[0] === dateOnly &&
         slot.time === time &&
@@ -941,9 +958,8 @@ const rescheduleAppointment = async (req, res) => {
 };
 
 // PUT Patient can schedule a follow-UP appointment
-const followUPAppointment = async (req, res) => {
-  const { date, doctorId, _id } = req.body;
-  const { patientId, patientType } = req.body;
+const followUpAppointment = async (req, res) => {
+  const { date, doctorId, patientId, patientType, amount } = req.body;
 
   const dateObject = new Date(date);
 
@@ -954,7 +970,7 @@ const followUPAppointment = async (req, res) => {
   });
 
   try {
-    const doctor = await doctorModel.findById(doctorId);
+    const doctor = await Doctor.findById(doctorId);
 
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
@@ -980,8 +996,9 @@ const followUPAppointment = async (req, res) => {
       patientId: patientId,
       date: date,
       doctorId: doctorId,
-      status: "UPCOMING",
+      status: "PENDING",
       patientType: patientType,
+      price: amount,
     });
 
     // Save the new appointment
@@ -996,6 +1013,43 @@ const followUPAppointment = async (req, res) => {
     res.status(400).json({ message: "Server error" });
   }
 };
+
+const getFamilyMemberAppointments = async (req, res) => {
+  const username = req.user.username;
+
+  try {
+    const patient = await patientModel.findOne({ username: username });
+    const familyMembers = patient.familyMembers;
+    const appointments = [];
+
+    for (let i = 0; i < familyMembers.length; i++) {
+      let familyPatientAppointments = [];
+
+      if (familyMembers[i].type == "EXISTING") {
+        const familyPatient = await patientModel.findById(familyMembers[i].id);
+        familyPatientAppointments = await Appointment.find({
+          patientId: familyPatient._id,
+        });
+      } else {
+        const guest = await familyMembersModel.findById(familyMembers[i].id);
+        familyPatientAppointments = await Appointment.find({
+          patientId: guest._id,
+        });
+      }
+
+      // Accumulate appointments for each family member
+      appointments.push(...familyPatientAppointments);
+    }
+
+    // Send the response after the loop
+    res.status(200).json(appointments);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+    
 
 /*
   REMINDER TO ADD DATE CHECK WITH THE START OF EVERY SESSION IN ORDER TO CHANEG THE STATUS OF THE SUBSCRIPTION WHEN NEEDED
@@ -1028,4 +1082,7 @@ module.exports = {
   deleteMedicalHistory,
   cancelAppointment,
   rescheduleAppointment,
+  refundToWallet,
+  followUpAppointment,
+  getFamilyMemberAppointments
 };

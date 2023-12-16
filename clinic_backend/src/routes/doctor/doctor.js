@@ -17,6 +17,7 @@ const {
   cancelAppointment,
   rescheduleAppointment,
   chooseSlots,
+  handleFollowUpAppointment,
 } = require("./doctorController");
 const { getAppointments } = require("../appointment/appointmentController");
 
@@ -34,16 +35,23 @@ router.put(
 );
 
 //PUT Doctor can cancel appointment
-router.put( 
+router.put(
   "/cancelAppointment",
-  // authenticateToken("DOCTOR"),
+  authenticateToken("DOCTOR"),
   cancelAppointment
+);
+
+//PUT Doctor can handle follow up appointment
+router.put(
+  "/handleFollowUpAppointment",
+  // authenticateToken("DOCTOR"),
+  handleFollowUpAppointment
 );
 
 //PUT Doctor can reschedule appointment
 router.put(
   "/rescheduleAppointment",
-  // authenticateToken("DOCTOR"),
+  authenticateToken("DOCTOR"),
   rescheduleAppointment
 );
 
