@@ -7,6 +7,7 @@ const packageModel = require("../../../../models/packageModel.js");
 const familyMembersModel = require("../../../../models/familyMembersModel.js");
 const prescriptionsModel = require("../../../../models/prescriptionsModel.js");
 const { getBucketName } = require("../../../../utils/getBucketName.js");
+const Notification = require("../../../../models/notificationModel.js");
 
 //GET list of all doctors or doctors by searching name and/or speciality
 const getDoctors = async (req, res) => {
@@ -61,6 +62,28 @@ const getDoctors = async (req, res) => {
   } catch (error) {
     console.error("Error getting doctors:", error);
     res.status(500).json({ message: "Internal server error", error: error });
+  }
+};
+
+const getMyDoctors = async (req, res) => {
+  try {
+    const { patientId } = req.body;
+
+    // Find appointments for the specified patient
+    const appointments = await Appointment.find({ patientId });
+
+    // Extract unique doctor IDs from the appointments
+    const doctorIds = [
+      ...new Set(appointments.map((appointment) => appointment.doctorId)),
+    ];
+
+    // Fetch details of doctors using the unique doctor IDs
+    const doctors = await Doctor.find({ _id: { $in: doctorIds } });
+
+    res.json(doctors);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -775,6 +798,15 @@ const getHealthRecords = async (req, res) => {
   }
 };
 
+const getNotifications = async (req, res) => {
+  const notifications = await Notification.find({type: "PATIENT"});
+
+  return res.json({
+    success: true,
+    data: notifications
+  });
+}
+
 const getAllPrescriptions = async (req, res) => {
   const username = req.body.username;
 
@@ -825,5 +857,7 @@ module.exports = {
   getHealthRecords,
   changePassword,
   deleteMedicalHistory,
+  getMyDoctors,
+  getNotifications,
   getAllPrescriptions,
 };

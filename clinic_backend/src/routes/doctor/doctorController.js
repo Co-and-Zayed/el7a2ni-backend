@@ -2,6 +2,7 @@ const appointmentModel = require("../../../../models/appointmentModel");
 const doctorModel = require("../../../../models/doctorModel");
 const patientModel = require("../../../../models/patientModel");
 const contractModel = require("../../../../models/contractModel");
+const Notification = require("../../../../models/notificationModel");
 const prescriptionsModel = require("../../../../models/prescriptionsModel.js");
 const medicineModel = require("../../../../models/medicineModel");
 
@@ -133,6 +134,7 @@ const viewAllContracts = async (req, res) => {
 };
 
 const acceptContract = async (req, res) => {
+  console.log("MATETNAYYEL ACCEPT");
   const { _id } = req.body;
   const { username } = req.user;
   try {
@@ -374,6 +376,15 @@ const deleteMedicineFromPrescription = async (req, res) => {
   }
 };
 
+const getNotifications = async (req, res) => {
+  const notifications = await Notification.find({type: "DOCTOR"});
+
+  return res.json({
+    success: true,
+    data: notifications
+  });
+}
+
 module.exports = {
   getPatientInfo,
   getPatients,
@@ -387,6 +398,7 @@ module.exports = {
   rejectContract,
   addHealthRecordForPatient,
   changePassword,
+  getNotifications,
   getAllPrescriptions,
   addPrescription,
   getAvailableMedicines,

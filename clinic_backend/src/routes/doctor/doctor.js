@@ -14,6 +14,7 @@ const {
   rejectContract,
   addHealthRecordForPatient,
   changePassword,
+  getNotifications,
   getAllPrescriptions,
   getAvailableMedicines,
   addMedicineToPrescription,
@@ -28,6 +29,8 @@ router.post("/getPatientInfo", authenticateToken("DOCTOR"), getPatientInfo);
 
 //get list of all patients given doctor's email
 router.post("/getPatients", authenticateToken("DOCTOR"), getPatients);
+
+router.get("/notifications", getNotifications);
 
 //GET patients by searching name find({name : req.body.name})
 router.get(

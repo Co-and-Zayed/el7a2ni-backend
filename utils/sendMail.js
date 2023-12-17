@@ -19,10 +19,10 @@ const sendMail = (to, subject, text, successCallback, failureCallback) => {
 
   transporter.sendMail(mailOptions, (err, info) => {
     if (err) {
-      failureCallback();
+      failureCallback && failureCallback();
       return;
     } else {
-      callback();
+      callback && callback();
     }
   });
 };

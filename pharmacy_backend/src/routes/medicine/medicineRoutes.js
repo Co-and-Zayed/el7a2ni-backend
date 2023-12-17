@@ -12,11 +12,14 @@ const {
   deleteMedicine,
   getMedicineById,
   buyMedicines,
+  updateMedicineQuantity
 } = require("./medicineController");
 const { authenticateToken } = require("../../../../routes/auth/authController");
 
 // Medicine Routes
 router.get("/getMedicines", authenticateToken(), getMedicines);
+
+router.post('/updateMedicineQuantity', updateMedicineQuantity);
 
 router.post(
   "/createMedicine",

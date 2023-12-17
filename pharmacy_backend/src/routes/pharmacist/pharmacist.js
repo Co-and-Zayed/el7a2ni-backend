@@ -5,6 +5,7 @@ const {
   viewAllContracts,
   acceptContract,
   rejectContract,
+  viewAllNotifications,
   archiveMedicine,
   unarchiveMedicine,
   viewSalesReport,
@@ -24,6 +25,9 @@ router.put("/rejectContract", authenticateToken("PHARMACIST"), rejectContract);
 
 router.post("/resetPassword", authenticateToken("PHARMACIST"), resetPassword);
 
+
+router.get("/viewAllNotifications", viewAllNotifications);
+
 router.post(
   "/archiveMedicine",
   //authenticateToken("PHARMACIST"),
@@ -41,4 +45,5 @@ router.post(
   //authenticateToken("PHARMACIST"),
   viewSalesReport
 );
+
 module.exports = router;

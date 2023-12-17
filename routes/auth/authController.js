@@ -88,6 +88,7 @@ function authenticateToken(userType = null) {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
     if (token == null) {
+      console.log("AUTH HEADER TOKEN NOT FOUND");
       return res
         .status(401)
         .json({ message: "Authorization header token not found" });
@@ -95,14 +96,21 @@ function authenticateToken(userType = null) {
 
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, user) => {
       if (err) {
+        console.log("ACCESS TOKEN NOT VALID");
+        console.log(err.message);
+        console.log("HEADER: ", authHeader);
+        console.log("TOKEN: ", token);
         await refreshTokensModel.deleteMany({ token: refreshToken });
-        return res.status(401).json({ message: "Access Token is not valid" }); // should send a refresh request
+        return res
+          .status(401)
+          .json({ message: "Access Token is not valid", error: err.message }); // should send a refresh request
       }
 
       const tokenRecord = await refreshTokensModel.findOne({
         username: user.username,
       });
       if (!tokenRecord) {
+        console.log("REFRESH TOKEN NOT FOUND");
         await refreshTokensModel.deleteMany({ token: refreshToken });
         return res.status(401).json({ message: "No refresh token found" });
       }
