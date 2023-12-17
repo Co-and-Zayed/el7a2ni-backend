@@ -2,6 +2,7 @@ const appointmentModel = require("../../../../models/appointmentModel");
 const doctorModel = require("../../../../models/doctorModel");
 const patientModel = require("../../../../models/patientModel");
 const contractModel = require("../../../../models/contractModel");
+const Notification = require("../../../../models/notificationModel");
 
 //GET a patient's information and health records
 const getPatientInfo = async (req, res) => {
@@ -238,7 +239,7 @@ const changePassword = async (req, res) => {
 };
 
 const getNotifications = async (req, res) => {
-  const notifications = Notification.find({type: "DOCTOR"});
+  const notifications = await Notification.find({type: "DOCTOR"});
 
   return res.json({
     success: true,

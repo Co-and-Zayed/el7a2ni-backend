@@ -6,6 +6,7 @@ const patientModel = require("../../../../models/patientModel.js");
 const packageModel = require("../../../../models/packageModel.js");
 const familyMembersModel = require("../../../../models/familyMembersModel.js");
 const { getBucketName } = require("../../../../utils/getBucketName.js");
+const Notification = require("../../../../models/notificationModel.js");
 
 //GET list of all doctors or doctors by searching name and/or speciality
 const getDoctors = async (req, res) => {
@@ -797,7 +798,7 @@ const getHealthRecords = async (req, res) => {
 };
 
 const getNotifications = async (req, res) => {
-  const notifications = Notification.find({type: "PATIENT"});
+  const notifications = await Notification.find({type: "PATIENT"});
 
   return res.json({
     success: true,
