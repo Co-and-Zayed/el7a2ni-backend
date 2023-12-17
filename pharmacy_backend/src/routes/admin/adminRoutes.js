@@ -15,6 +15,7 @@ const {
   rejectPharmacist,
   sendContract,
   resetPassword,
+  viewSalesReport,
 } = require("./adminController");
 
 router.post("/resetPassword", authenticateToken("ADMIN"), resetPassword);
@@ -46,5 +47,11 @@ router.get(
 
 router.get("/viewPharmacists", authenticateToken("ADMIN"), viewPharmacists);
 router.get("/viewPatients", authenticateToken("ADMIN"), viewPatients);
+
+router.post(
+  "/viewSalesReport",
+  //authenticateToken("ADMIN"),
+  viewSalesReport
+);
 
 module.exports = router;

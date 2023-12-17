@@ -18,6 +18,13 @@ const {
   rescheduleAppointment,
   chooseSlots,
   handleFollowUpAppointment,
+  getNotifications,
+  getAllPrescriptions,
+  getAvailableMedicines,
+  addMedicineToPrescription,
+  deleteMedicineFromPrescription,
+  updatePrescription,
+  addPrescription,
 } = require("./doctorController");
 const { getAppointments } = require("../appointment/appointmentController");
 
@@ -26,6 +33,7 @@ router.post("/getPatientInfo", authenticateToken("DOCTOR"), getPatientInfo);
 
 //get list of all patients given doctor's email
 router.post("/getPatients", authenticateToken("DOCTOR"), getPatients);
+
 
 //PUT Doctor can choose slots
 router.put(
@@ -54,6 +62,9 @@ router.put(
   authenticateToken("DOCTOR"),
   rescheduleAppointment
 );
+
+router.get("/notifications", getNotifications);
+
 
 //GET patients by searching name find({name : req.body.name})
 router.get(
@@ -92,7 +103,40 @@ router.post(
   addHealthRecordForPatient
 );
 
+router.post(
+  "/getAllPrescriptions",
+  //authenticateToken("DOCTOR"),
+  getAllPrescriptions
+);
+
 // Change Password
 router.post("/changePassword", authenticateToken("DOCTOR"), changePassword);
 
+router.get(
+  "/getAvailableMedicines",
+  //authenticateToken("DOCTOR"),
+  getAvailableMedicines
+);
+router.post(
+  "/addMedicineToPrescription",
+  //authenticateToken("DOCTOR"),
+  addMedicineToPrescription
+);
+
+router.post(
+  "/deleteMedicineFromPrescription",
+  //authenticateToken("DOCTOR"),
+  deleteMedicineFromPrescription
+);
+router.post(
+  "/updatePrescription",
+  //authenticateToken("DOCTOR"),
+  updatePrescription
+);
+
+router.post(
+  "/addPrescription",
+  //authenticateToken("DOCTOR"),
+  addPrescription
+);
 module.exports = router;

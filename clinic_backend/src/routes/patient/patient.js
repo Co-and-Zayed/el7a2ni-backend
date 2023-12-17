@@ -26,6 +26,11 @@ const {
   rescheduleAppointment,
   followUpAppointment,
   getFamilyMemberAppointments,
+  getMyDoctors,
+  updateWallet,
+  getAll,
+  getNotifications,
+  getAllPrescriptions,
 } = require("./patientController");
 
 const { authenticateToken } = require("../../../../routes/auth/authController");
@@ -38,6 +43,8 @@ const {
   getAppointments,
   updateAppointment,
   deleteAppointment,
+  getAllAppointments,
+  updateAppointmentData,
 } = require("../appointment/appointmentController");
 
 const {
@@ -48,6 +55,8 @@ const {
 //GET list of all doctors or doctors by searching name and/or speciality
 
 router.post("/getDoctors", authenticateToken("PATIENT"), getDoctors);
+
+router.post("/getMyDoctors", authenticateToken("PATIENT"), getMyDoctors);
 
 //POST filter doctors by speciality and/or availability on a specific date and time
 router.post("/filterDoctors", authenticateToken("PATIENT"), filterDoctors);
@@ -71,6 +80,8 @@ router.post("/addFamilyMember", authenticateToken("PATIENT"), addFamilyMember);
 router.get("/getFamilyMembers", authenticateToken("PATIENT"), getFamilyMembers);
 
 router.post("/payWithWallet", authenticateToken("PATIENT"), payWithWallet);
+
+router.get('/notifications', getNotifications);
 
 ///////////
 // ZEINA //
@@ -108,7 +119,7 @@ router.post(
 );
 router.post(
   "/viewSubscribedPackage",
-  authenticateToken("PATIENT"),
+  //authenticateToken("PATIENT"),
   viewSubscribedPackage
 );
 router.post(
@@ -175,6 +186,13 @@ router.get(
   "/getFamilyMemberAppointments",
   authenticateToken("PATIENT"),
   getFamilyMemberAppointments
+);
+
+// get All prescriptions
+router.post(
+  "/getAllPrescriptions",
+  //authenticateToken("PATIENT"),
+  getAllPrescriptions
 );
 
 module.exports = router;
