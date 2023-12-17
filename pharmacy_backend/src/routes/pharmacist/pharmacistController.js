@@ -1,5 +1,6 @@
 const pharmacistModel = require("../../../../models/pharmacistModel");
 const contractModel = require("../../../../models/contractModel");
+const Notification = require("../../../../models/notificationModel");
 
 const viewAllContracts = async (req, res) => {
   const { username } = req.user;
@@ -77,9 +78,19 @@ const resetPassword = async (req, res) => {
   });
 };
 
+const viewAllNotifications = async (req, res) => {
+  const notifications = await Notification.find({type: "PHARMACIST"});
+
+  return res.json({
+    'success': true,
+    'data': notifications
+  });
+}
+
 module.exports = {
   resetPassword,
   viewAllContracts,
   acceptContract,
   rejectContract,
+  viewAllNotifications
 };

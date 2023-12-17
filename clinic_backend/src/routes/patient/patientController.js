@@ -796,6 +796,16 @@ const getHealthRecords = async (req, res) => {
   }
 };
 
+const getNotifications = async (req, res) => {
+  const notifications = Notification.find({type: "PATIENT"});
+
+  return res.json({
+    success: true,
+    data: notifications
+  });
+}
+
+
 /*
   REMINDER TO ADD DATE CHECK WITH THE START OF EVERY SESSION IN ORDER TO CHANEG THE STATUS OF THE SUBSCRIPTION WHEN NEEDED
   CASES:
@@ -826,4 +836,5 @@ module.exports = {
   changePassword,
   deleteMedicalHistory,
   getMyDoctors,
+  getNotifications
 };

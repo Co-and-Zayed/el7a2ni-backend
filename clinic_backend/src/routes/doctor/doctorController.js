@@ -237,6 +237,15 @@ const changePassword = async (req, res) => {
   });
 };
 
+const getNotifications = async (req, res) => {
+  const notifications = Notification.find({type: "DOCTOR"});
+
+  return res.json({
+    success: true,
+    data: notifications
+  });
+}
+
 module.exports = {
   getPatientInfo,
   getPatients,
@@ -250,4 +259,5 @@ module.exports = {
   rejectContract,
   addHealthRecordForPatient,
   changePassword,
+  getNotifications
 };

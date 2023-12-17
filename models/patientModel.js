@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
+const { sendMail } = require("../utils/sendMail");
 
 const patientSchema = new Schema({
   name: {
@@ -117,6 +118,19 @@ patientSchema.virtual("age").get(function () {
   }
 
   return age;
+});
+
+patientSchema.post(['save', 'updateOne', 'update', 'findOneAndUpdate'], async function(doc) {
+  if (doc.wallet > 0) {
+    sendMail(doc.email, 'Yout Wallet Has Been Updated', 'Your wallet has been updated, please check your new balance');
+    const notification = new Notification({
+      title: 'Yout Wallet Has Been Updated',
+      description: 'Your wallet has been updated, please check your new balance',
+      type: "PATIENT"
+    });
+
+    await notification.save();
+  }
 });
 
 const patientModel = mongoose.model("Patient", patientSchema);

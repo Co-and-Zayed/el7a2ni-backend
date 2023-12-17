@@ -359,6 +359,20 @@ const buyMedicines = async (req, res) => {
   }
 };
 
+const updateMedicineQuantity = async (req, res) => {
+  const { id, quantity} = req.body;
+
+  const medicine = await Medicine.findById(id);
+
+  medicine.availableQuantity = quantity;
+
+  await medicine.save();
+
+  return res.json({
+    'success': true
+  });
+}
+
 module.exports = {
   createMedicine,
   getMedicines,
@@ -369,4 +383,5 @@ module.exports = {
   deleteMedicine,
   getMedicineById,
   buyMedicines,
+  updateMedicineQuantity
 };

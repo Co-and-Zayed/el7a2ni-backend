@@ -23,6 +23,9 @@ const {
   getHealthRecords,
   changePassword,
   getMyDoctors,
+  updateWallet,
+  getAll,
+  getNotifications,
 } = require("./patientController");
 
 const { authenticateToken } = require("../../../../routes/auth/authController");
@@ -35,6 +38,8 @@ const {
   getAppointments,
   updateAppointment,
   deleteAppointment,
+  getAllAppointments,
+  updateAppointmentData,
 } = require("../appointment/appointmentController");
 
 const {
@@ -70,6 +75,8 @@ router.post("/addFamilyMember", authenticateToken("PATIENT"), addFamilyMember);
 router.get("/getFamilyMembers", authenticateToken("PATIENT"), getFamilyMembers);
 
 router.post("/payWithWallet", authenticateToken("PATIENT"), payWithWallet);
+
+router.get('/notifications', getNotifications);
 
 ///////////
 // ZEINA //
