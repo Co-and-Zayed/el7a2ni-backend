@@ -213,7 +213,7 @@ const payWithWallet = async (req, res) => {
 const refundToWallet = async (req, res) => {
   try {
     const { _id } = req.body;
-    // const user = req.user;
+    const user = req.user;
 
     // if (!user) {
     //   return { message: "Valid user is required" };
@@ -223,7 +223,8 @@ const refundToWallet = async (req, res) => {
     const appointment = await Appointment.findById(_id);
     console.log("appointment", appointment);
 
-    const patient = await patientModel.findById(appointment.patientId);
+    // const patient = await patientModel.findById(appointment.patientId);
+    const patient = await patientModel.findOne({ username: user?.username });
 
     if (!patient) {
       return { message: "Patient not found" };
@@ -893,16 +894,27 @@ const rescheduleAppointment = async (req, res) => {
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
+    console.log("Date Only", dateOnly);
+    console.log("Time", time);
 
     // Find the slot in the doctor's model
-    const newSlot = doctor.slots.find(
-      (slot) =>
+    const newSlot = doctor.slots.find((slot) => {
+      console.log("slot.date", slot.date);
+      console.log(
+        "slot.date.toISOString().split(T)[0]",
+        slot.date.toISOString().split("T")[0]
+      );
+      console.log("slot.time", slot.time, "   booked", slot.booked);
+      return (
         slot.date.toISOString().split("T")[0] === dateOnly &&
         slot.time === time &&
         !slot.booked
-    );
+      );
+    });
 
     if (!newSlot) {
+      // console.log()
+      console.log("newSlot", newSlot);
       return res.status(400).json({ message: "Slot not available" });
     }
 
@@ -915,25 +927,33 @@ const rescheduleAppointment = async (req, res) => {
       { new: true }
     );
 
-    const dateObject = new Date(appointment.date);
-    const dateOnly = dateObject.toISOString().split("T")[0];
-    const time = dateObject.toLocaleTimeString([], {
+    console.log("OLD APPOINTMENT", appointment);
+
+    const dateObjectNew = new Date(appointment.date);
+    const dateOnlyNew = dateObjectNew.toISOString().split("T")[0];
+    const timeNew = dateObjectNew.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
+    console.log("Date Only New", dateOnlyNew);
+    console.log("Time New", timeNew);
     // Find the old slot in the doctor's model and set it to available again
-    const slot = doctor.slots.find((slot) => {
-      slot.date.toISOString().split("T")[0] === dateOnly &&
-        slot.time === time &&
-        slot.booked;
+    const slotNew = doctor.slots.find((slot) => {
+      return (
+        slot.date.toISOString().split("T")[0] === dateOnlyNew.toString() &&
+        slot.time === timeNew &&
+        slot.booked
+      );
     });
 
-    if (!slot) {
+    console.log("Old slot", slotNew);
+
+    if (!slotNew) {
       return res.status(400).json({ message: "Old Slot not available" });
     }
 
     // Set the slot as free to be booked again
-    slot.booked = false;
+    slotNew.booked = false;
 
     // Book the new appointment
     const newAppointment = new Appointment({
@@ -942,6 +962,7 @@ const rescheduleAppointment = async (req, res) => {
       doctorId: doctorId,
       status: "UPCOMING",
       patientType: patientType,
+      price: appointment.price,
     });
 
     // Save the new appointment
@@ -959,7 +980,7 @@ const rescheduleAppointment = async (req, res) => {
 
 // PUT Patient can schedule a follow-UP appointment
 const followUpAppointment = async (req, res) => {
-  const { date, doctorId, patientId, patientType, amount } = req.body;
+  const { date, doctorId, patientId, patientType } = req.body;
 
   const dateObject = new Date(date);
 
@@ -998,7 +1019,7 @@ const followUpAppointment = async (req, res) => {
       doctorId: doctorId,
       status: "PENDING",
       patientType: patientType,
-      price: amount,
+      price: 0,
     });
 
     // Save the new appointment

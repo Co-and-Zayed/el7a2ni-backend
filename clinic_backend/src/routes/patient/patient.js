@@ -25,7 +25,7 @@ const {
   cancelAppointment,
   rescheduleAppointment,
   followUpAppointment,
-  getFamilyMemberAppointments
+  getFamilyMemberAppointments,
 } = require("./patientController");
 
 const { authenticateToken } = require("../../../../routes/auth/authController");
@@ -151,6 +151,7 @@ router.post("/changePassword", authenticateToken("PATIENT"), changePassword);
 router.put(
   "/cancelAppointment",
   // authenticateToken("PATIENT"),
+  authenticateToken(),
   cancelAppointment
 );
 
@@ -175,6 +176,5 @@ router.get(
   authenticateToken("PATIENT"),
   getFamilyMemberAppointments
 );
-
 
 module.exports = router;

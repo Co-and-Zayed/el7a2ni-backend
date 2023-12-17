@@ -2,10 +2,11 @@ const appointmentModel = require("../../../../models/appointmentModel");
 const doctorModel = require("../../../../models/doctorModel");
 const patientModel = require("../../../../models/patientModel");
 const contractModel = require("../../../../models/contractModel");
+const familyMemberModel = require("../../../../models/familyMembersModel");
 const { create } = require("../../../../models/refreshTokensModel");
 const {
   payWithWallet,
-  refundToWallet,
+  // refundToWallet,
 } = require("../patient/patientController");
 
 //GET a patient's information and health records
@@ -26,7 +27,7 @@ const handleFollowUpAppointment = async (req, res) => {
 
   if (approval === "ACCEPTED") {
     try {
-      payWithWallet(req, res);
+      // payWithWallet(req, res);
       const appointment = await appointmentModel.findOneAndUpdate(
         { _id: appointmentId },
         { status: "UPCOMING" },
@@ -197,6 +198,54 @@ const chooseSlots = async (req, res) => {
   }
 };
 
+const refundToPatientWallet = async (appointment) => {
+  try {
+    // If patientType is patient, refund to patient wallet
+    if (appointment.patientType && appointment.patientType === "GUEST") {
+      // get familyMember using patientId
+      const fm = await familyMemberModel.findById(appointment.patientId);
+
+      // fm's relationTo is the email of the guardian. We will refund to the guardian's wallet
+      const guardian = await patientModel.findOne({ email: fm.relationTo });
+
+      // Add amount to guardian wallet
+      guardian.wallet += appointment.price;
+
+      // Save the updated guardian
+      await guardian.save();
+    } else {
+      const patient = await patientModel.findById(appointment.patientId);
+
+      // Add amount to patient wallet
+      patient.wallet += appointment.price;
+
+      // Save the updated patient
+      await patient.save();
+      //
+    }
+
+    // DEDUCT FROM DOCTOR WALLET
+    const doctor = await doctorModel.findById(appointment.doctorId);
+
+    // Deduct
+    doctor.wallet -= appointment.price;
+
+    // CHeck if doctor has enough money
+    if (doctor.wallet < 0) {
+      doctor.wallet = 0;
+    }
+
+    // Save the updated doctor
+    await doctor.save();
+
+    // Return the updated appointment
+    return true;
+  } catch (err) {
+    console.log(err);
+    return false;
+  }
+};
+
 //PUT Doctor can cancel appointment
 const cancelAppointment = async (req, res) => {
   const { _id } = req.body;
@@ -207,7 +256,11 @@ const cancelAppointment = async (req, res) => {
       { new: true }
     );
 
-    refundToWallet(req, res);
+    const success = await refundToPatientWallet(appointment);
+    if (!success) {
+      res.status(400).json({ message: "Could not refund to patient wallet" });
+      return;
+    }
 
     res.status(200).json({
       appointment,
