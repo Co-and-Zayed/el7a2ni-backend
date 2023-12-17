@@ -58,10 +58,27 @@ const doctorSchema = new Schema({
     enum: ["PENDING", "ACCEPTED", "REJECTED", "WAITING"],
     default: "PENDING",
   },
-  contractID:{
+  contractID: {
     type: String,
     default: "",
   },
+  slots: [
+    {
+      date: {
+        type: Date,
+        required: true,
+      },
+      time: {
+        type: String,
+        required: true,
+      },
+      booked: {
+        type: Boolean,
+        required: true,
+        default: false,
+      },
+    },
+  ],
 });
 
 //Define a virtual property to compute the 'age' based on 'date_of_birth'.
@@ -81,6 +98,9 @@ doctorSchema.virtual("age").get(function () {
 
   return age;
 });
+
+// Define a compound unique index on date and time in the slots array
+doctorSchema.index({ "slots.date": 1, "slots.time": 1 }, { unique: true });
 
 const doctorModel = mongoose.model("Doctor", doctorSchema);
 module.exports = doctorModel;

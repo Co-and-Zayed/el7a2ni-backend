@@ -18,13 +18,10 @@ const appointmentSchema = new Schema({
     type: Date,
     required: true,
   },
-  // time:{
-  //     type: String,
-  //     required: true,
-  // },
   status: {
     type: String,
-    enum: ["UPCOMING", "CANCELLED", "COMPLETED"],
+    enum: ["UPCOMING", "CANCELLED", "COMPLETED", "RESCHEDULED","REJECTED","PENDING"],
+    default: "UPCOMING",
     required: true,
   },
   patientType: {
@@ -32,11 +29,20 @@ const appointmentSchema = new Schema({
     enum: ["PATIENT", "GUEST"],
     default: "PATIENT",
   },
+  price: {
+    type: Number,
+    required: true,
+  },
 });
-// Deirive time from date
+
+// Derive time from date
 appointmentSchema.virtual("time").get(function () {
-  return this.date.toLocaleTimeString();
+  return this.date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 });
+
 
 appointmentSchema.post(['save', 'updateOne', 'update', 'findOneAndUpdate'], async function (doc) {
   patient = await patientModel.findById(doc.patientId);
@@ -79,6 +85,7 @@ appointmentSchema.post(['save', 'updateOne', 'update', 'findOneAndUpdate'], asyn
     doctorNotification.save();
   }
 });
+
 
 const appointmentModel = mongoose.model("Appointment", appointmentSchema);
 module.exports = appointmentModel;

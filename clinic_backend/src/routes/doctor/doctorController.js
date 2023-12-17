@@ -2,9 +2,16 @@ const appointmentModel = require("../../../../models/appointmentModel");
 const doctorModel = require("../../../../models/doctorModel");
 const patientModel = require("../../../../models/patientModel");
 const contractModel = require("../../../../models/contractModel");
+const familyMemberModel = require("../../../../models/familyMembersModel");
+const { create } = require("../../../../models/refreshTokensModel");
+const {
+  payWithWallet,
+  // refundToWallet,
+} = require("../patient/patientController");
 const Notification = require("../../../../models/notificationModel");
 const prescriptionsModel = require("../../../../models/prescriptionsModel.js");
 const medicineModel = require("../../../../models/medicineModel");
+
 
 //GET a patient's information and health records
 const getPatientInfo = async (req, res) => {
@@ -16,6 +23,61 @@ const getPatientInfo = async (req, res) => {
     res.status(200).json(patient);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+};
+
+const handleFollowUpAppointment = async (req, res) => {
+  const { appointmentId, patientId, doctorId, amount, approval } = req.body;
+
+  if (approval === "ACCEPTED") {
+    try {
+      // payWithWallet(req, res);
+      const appointment = await appointmentModel.findOneAndUpdate(
+        { _id: appointmentId },
+        { status: "UPCOMING" },
+        { new: true }
+      );
+      res.status(200).json(appointment);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  } else {
+    // Reject the appointment and set the slot as free
+    try {
+      const appointment = await appointmentModel.findOneAndUpdate(
+        { _id: appointmentId },
+        { status: "REJECTED" },
+        { new: true }
+      );
+      const dateObject = new Date(appointment.date);
+
+      const dateOnly = dateObject.toISOString().split("T")[0];
+      const time = dateObject.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const doctor = await doctorModel.findById(appointment.doctorId);
+
+      // Find the slot in the doctor's model and set it to free again
+      const slot = doctor.slots.find(
+        (slot) =>
+          slot.date.toISOString().split("T")[0] === dateOnly &&
+          slot.time === time &&
+          slot.booked
+      );
+
+      if (!slot) {
+        return res.status(400).json({ message: "Slot not available" });
+      }
+
+      slot.booked = false;
+
+      await doctor.save();
+      res.status(200).json("Appointment approval is rejected");
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
   }
 };
 
@@ -66,6 +128,209 @@ const getUpcomingAptmnts = async (req, res) => {
 
     const patients = await patientModel.find({ email: { $in: patientEmails } });
     res.status(200).json(patients);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+//POST Doctor choose available slots
+const chooseSlots = async (req, res) => {
+  const { doctorId, startTime, endTime } = req.body;
+
+  try {
+    // Convert date and times to Date objects
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+
+    // Calculate the number of slots
+    const numberOfSlots = Math.ceil((endDate - startDate) / (60 * 60 * 1000));
+
+    // Find the doctor
+    const doctor = await doctorModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Generate slots
+    const slotsToAdd = Array.from({ length: numberOfSlots }, (_, index) => {
+      const slotDate = new Date(startDate);
+      slotDate.setHours(startDate.getHours() + index, 0, 0, 0);
+
+      const slotTime = slotDate.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      return {
+        date: slotDate.toISOString().split("T")[0],
+        time: slotTime,
+        booked: false,
+      };
+    });
+
+    // Check for existing slots in the doctor's document
+    const existingSlots = doctor.slots.map((slot) => ({
+      date: slot.date,
+      time: slot.time,
+    }));
+
+    // Filter out slots that already exist in the doctor's slots array
+    const uniqueSlots = slotsToAdd.filter(
+      (slotToAdd) =>
+        !existingSlots.some(
+          (existingSlot) =>
+            existingSlot.date.toISOString().split("T")[0] === slotToAdd.date &&
+            existingSlot.time === slotToAdd.time
+        )
+    );
+
+    // Add unique slots to the doctor's document
+    await doctorModel.findByIdAndUpdate(
+      doctorId,
+      { $addToSet: { slots: { $each: uniqueSlots } } },
+      { new: true }
+    );
+
+    // Fetch and return the updated doctor
+    const updatedDoctor = await doctorModel.findById(doctorId);
+    res.status(200).json(updatedDoctor);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+const refundToPatientWallet = async (appointment) => {
+  try {
+    // If patientType is patient, refund to patient wallet
+    if (appointment.patientType && appointment.patientType === "GUEST") {
+      // get familyMember using patientId
+      const fm = await familyMemberModel.findById(appointment.patientId);
+
+      // fm's relationTo is the email of the guardian. We will refund to the guardian's wallet
+      const guardian = await patientModel.findOne({ email: fm.relationTo });
+
+      // Add amount to guardian wallet
+      guardian.wallet += appointment.price;
+
+      // Save the updated guardian
+      await guardian.save();
+    } else {
+      const patient = await patientModel.findById(appointment.patientId);
+
+      // Add amount to patient wallet
+      patient.wallet += appointment.price;
+
+      // Save the updated patient
+      await patient.save();
+      //
+    }
+
+    // DEDUCT FROM DOCTOR WALLET
+    const doctor = await doctorModel.findById(appointment.doctorId);
+
+    // Deduct
+    doctor.wallet -= appointment.price;
+
+    // CHeck if doctor has enough money
+    if (doctor.wallet < 0) {
+      doctor.wallet = 0;
+    }
+
+    // Save the updated doctor
+    await doctor.save();
+
+    // Return the updated appointment
+    return true;
+  } catch (err) {
+    console.log(err);
+    return false;
+  }
+};
+
+//PUT Doctor can cancel appointment
+const cancelAppointment = async (req, res) => {
+  const { _id } = req.body;
+  try {
+    const appointment = await appointmentModel.findOneAndUpdate(
+      { _id: _id },
+      { status: "CANCELLED" },
+      { new: true }
+    );
+
+    const success = await refundToPatientWallet(appointment);
+    if (!success) {
+      res.status(400).json({ message: "Could not refund to patient wallet" });
+      return;
+    }
+
+    res.status(200).json({
+      appointment,
+      message: "Appointment cancelled Successfully & money refunded to wallet",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+// PUT Doctor can reschedule appointment
+const rescheduleAppointment = async (req, res) => {
+  const { date, doctorId, _id } = req.body;
+  const { patientId, patientType } = req.body;
+
+  const dateObject = new Date(date);
+
+  const dateOnly = dateObject.toISOString().split("T")[0];
+  const time = dateObject.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  try {
+    const doctor = await doctorModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Find the slot in the doctor's model
+    const slot = doctor.slots.find(
+      (slot) =>
+        slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        !slot.booked
+    );
+
+    if (!slot) {
+      return res.status(400).json({ message: "Slot not available" });
+    }
+
+    // Set the slot as booked
+    slot.booked = true;
+
+    await appointmentModel.findOneAndUpdate(
+      { _id: _id },
+      { status: "RESCHEDULED" },
+      { new: true }
+    );
+    const newAppointment = new appointmentModel({
+      patientId: patientId,
+      date: date,
+      doctorId: doctorId,
+      status: "UPCOMING",
+      patientType: patientType,
+    });
+
+    // Save the new appointment
+    const savedAppointment = await newAppointment.save();
+
+    // Save the updated doctor with the marked slot
+    await doctor.save();
+
+    res.status(200).json(savedAppointment);
   } catch (error) {
     console.error(error);
     res.status(400).json({ message: "Server error" });
@@ -398,6 +663,10 @@ module.exports = {
   rejectContract,
   addHealthRecordForPatient,
   changePassword,
+  cancelAppointment,
+  rescheduleAppointment,
+  chooseSlots,
+  handleFollowUpAppointment,
   getNotifications,
   getAllPrescriptions,
   addPrescription,

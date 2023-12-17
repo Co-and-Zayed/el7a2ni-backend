@@ -22,6 +22,10 @@ const {
   resetPassword,
   getHealthRecords,
   changePassword,
+  cancelAppointment,
+  rescheduleAppointment,
+  followUpAppointment,
+  getFamilyMemberAppointments,
   getMyDoctors,
   updateWallet,
   getAll,
@@ -153,6 +157,36 @@ router.post("/resetPassword", authenticateToken("PATIENT"), resetPassword);
 router.get("/getHealthRecords", authenticateToken("PATIENT"), getHealthRecords);
 // Change Password
 router.post("/changePassword", authenticateToken("PATIENT"), changePassword);
+
+// Cancel Appointment
+router.put(
+  "/cancelAppointment",
+  // authenticateToken("PATIENT"),
+  authenticateToken(),
+  cancelAppointment
+);
+
+// Reschedule Appointment
+router.put(
+  "/rescheduleAppointment",
+  authenticateToken("PATIENT"),
+  rescheduleAppointment
+);
+
+//Follow up Appointment
+router.post(
+  "/followUpAppointment",
+  // authenticateToken("PATIENT"),
+  followUpAppointment
+);
+
+// Get Family Members appointments
+
+router.get(
+  "/getFamilyMemberAppointments",
+  authenticateToken("PATIENT"),
+  getFamilyMemberAppointments
+);
 
 // get All prescriptions
 router.post(

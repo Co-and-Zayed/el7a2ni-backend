@@ -187,28 +187,35 @@ const filterDoctors = async (req, res) => {
 // Deduct Money from Wallet
 const payWithWallet = async (req, res) => {
   try {
-    const { amount } = req.body;
-    const user = req.user;
+    const { patientId, doctorId, amount } = req.body;
+    // const user = req.user;
 
-    if (!user) {
-      res.status(400).json({ message: "Valid user is required" });
-      return;
-    }
+    // if (!user) {
+    //   res.status(400).json({ message: "Valid user is required" });
+    //   return;
+    // }
 
-    const patient = await patientModel.findOne({ username: user.username });
+    const patient = await patientModel.findOne({ _id: patientId });
 
     if (!patient) {
-      res.status(404).json({ message: "Patient not found" });
-      return;
+      return { message: "Patient not found" };
+    }
+
+    const doctor = await Doctor.findOne({ _id: doctorId });
+
+    if (!doctor) {
+      return { message: "Doctor not found" };
     }
 
     if (patient.wallet < amount) {
-      res.status(400).json({ message: "Not enough money in wallet" });
-      return;
+      return { message: "Not enough money in wallet" };
     }
 
     patient.wallet = patient.wallet - amount;
     var result = await patient.save();
+
+    doctor.wallet = doctor.wallet + amount;
+    var result = await doctor.save();
 
     // update patient
     // var result = await patientModel.updateOne(
@@ -217,12 +224,57 @@ const payWithWallet = async (req, res) => {
     // );
     console.log("result", result);
 
-    res
-      .status(200)
-      .json({ message: "Money deducted successfully", user: patient });
+    // res
+    //   .status(200)
+    //   .json({ message: "Money deducted successfully", user: patient });
   } catch (error) {
     console.error("Error deducting money:", error);
-    res.status(500).json({ message: "Internal server error", error: error });
+    return { message: "Internal server error", error: error };
+  }
+};
+
+// Refund Money to Wallet
+const refundToWallet = async (req, res) => {
+  try {
+    const { _id } = req.body;
+    const user = req.user;
+
+    // if (!user) {
+    //   return { message: "Valid user is required" };
+    // }
+
+    // const patient = await patientModel.findOne({ username: user.username });
+    const appointment = await Appointment.findById(_id);
+    console.log("appointment", appointment);
+
+    // const patient = await patientModel.findById(appointment.patientId);
+    const patient = await patientModel.findOne({ username: user?.username });
+
+    if (!patient) {
+      return { message: "Patient not found" };
+    }
+
+    patient.wallet = patient.wallet + appointment.price;
+    var result = await patient.save();
+
+    const doctor = await Doctor.findById({ _id: appointment.doctorId });
+
+    if (!doctor) {
+      return { message: "Doctor not found" };
+    }
+
+    doctor.wallet = doctor.wallet - appointment.price;
+    var result = await doctor.save();
+
+    // update patient
+    // var result = await patientModel.updateOne(
+    //   { 'username': patient.username },
+    //   { 'wallet': patient.wallet }
+    // );
+    console.log("result", result);
+  } catch (error) {
+    console.error("Error deducting money:", error);
+    return { message: "Internal server error", error: error };
   }
 };
 
@@ -798,6 +850,385 @@ const getHealthRecords = async (req, res) => {
   }
 };
 
+
+//PUT Patient can cancel appointment
+const cancelAppointment = async (req, res) => {
+  const { _id } = req.body;
+  try {
+    const appointment = await Appointment.findOneAndUpdate(
+      { _id: _id },
+      { status: "CANCELLED" },
+      { new: true }
+    );
+    const dateObject = new Date(appointment.date);
+    const dateOnly = dateObject.toISOString().split("T")[0];
+    const time = dateObject.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const doctor = await Doctor.findById(appointment.doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Find the slot in the doctor's model
+    const slot = doctor.slots.find((slot) => {
+      slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        slot.booked;
+    });
+
+    if (!slot) {
+      return res.status(400).json({ message: "Slot not available" });
+    }
+
+    // Set the slot as free to be booked again
+    slot.booked = false;
+
+    var wallet = await refundToWallet(req, res);
+    if (wallet) {
+      return res.json(wallet);
+    }
+
+    // Save the updated doctor with the marked slot
+    await doctor.save();
+
+    res.status(200).json(appointment);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+// PUT Patient can reschedule appointment
+const rescheduleAppointment = async (req, res) => {
+  const { date, doctorId, _id } = req.body;
+  const { patientId, patientType } = req.body;
+
+  const dateObject = new Date(date);
+
+  const dateOnly = dateObject.toISOString().split("T")[0];
+  const time = dateObject.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  try {
+    const doctor = await Doctor.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+    console.log("Date Only", dateOnly);
+    console.log("Time", time);
+
+    // Find the slot in the doctor's model
+    const newSlot = doctor.slots.find((slot) => {
+      console.log("slot.date", slot.date);
+      console.log(
+        "slot.date.toISOString().split(T)[0]",
+        slot.date.toISOString().split("T")[0]
+      );
+      console.log("slot.time", slot.time, "   booked", slot.booked);
+      return (
+        slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        !slot.booked
+      );
+    });
+
+    if (!newSlot) {
+      // console.log()
+      console.log("newSlot", newSlot);
+      return res.status(400).json({ message: "Slot not available" });
+    }
+
+    // Set the new slot as booked
+    newSlot.booked = true;
+
+    const appointment = await Appointment.findOneAndUpdate(
+      { _id: _id },
+      { status: "RESCHEDULED" },
+      { new: true }
+    );
+
+    console.log("OLD APPOINTMENT", appointment);
+
+    const dateObjectNew = new Date(appointment.date);
+    const dateOnlyNew = dateObjectNew.toISOString().split("T")[0];
+    const timeNew = dateObjectNew.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    console.log("Date Only New", dateOnlyNew);
+    console.log("Time New", timeNew);
+    // Find the old slot in the doctor's model and set it to available again
+    const slotNew = doctor.slots.find((slot) => {
+      return (
+        slot.date.toISOString().split("T")[0] === dateOnlyNew.toString() &&
+        slot.time === timeNew &&
+        slot.booked
+      );
+    });
+
+    console.log("Old slot", slotNew);
+
+    if (!slotNew) {
+      return res.status(400).json({ message: "Old Slot not available" });
+    }
+
+    // Set the slot as free to be booked again
+    slotNew.booked = false;
+
+    // Book the new appointment
+    const newAppointment = new Appointment({
+      patientId: patientId,
+      date: date,
+      doctorId: doctorId,
+      status: "UPCOMING",
+      patientType: patientType,
+      price: appointment.price,
+    });
+
+    // Save the new appointment
+    const savedAppointment = await newAppointment.save();
+
+    // Save the updated doctor with the marked slot
+    await doctor.save();
+
+    res.status(200).json(savedAppointment);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+// PUT Patient can schedule a follow-UP appointment
+const followUpAppointment = async (req, res) => {
+  const { date, doctorId, patientId, patientType } = req.body;
+
+  const dateObject = new Date(date);
+
+  const dateOnly = dateObject.toISOString().split("T")[0];
+  const time = dateObject.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  try {
+    const doctor = await Doctor.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Find the slot in the doctor's model
+    const newSlot = doctor.slots.find(
+      (slot) =>
+        slot.date.toISOString().split("T")[0] === dateOnly &&
+        slot.time === time &&
+        !slot.booked
+    );
+
+    if (!newSlot) {
+      return res.status(400).json({ message: "Slot not available" });
+    }
+
+    // Set the new slot as booked
+    newSlot.booked = true;
+
+    // Book the new appointment
+    const newAppointment = new Appointment({
+      patientId: patientId,
+      date: date,
+      doctorId: doctorId,
+      status: "PENDING",
+      patientType: patientType,
+      price: 0,
+    });
+
+    // Save the new appointment
+    const savedAppointment = await newAppointment.save();
+
+    // Save the updated doctor with the marked slot
+    await doctor.save();
+
+    res.status(200).json(savedAppointment);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+/*
+console.log("CHECKPOINT 1");
+    if (type === "PATIENT") {
+      const patient = await patientModel.find(id).select("-password").lean();
+      appointments = await appointmentModel
+        .find({ patientId: id })
+        .lean()
+        .select("-patientId");
+
+      for (let i = 0; i < appointments.length; i++) {
+        const appointment = appointments[i];
+
+        const doctor = await doctorModel
+          .findById(appointment.doctorId)
+          .select("-password")
+          .lean();
+
+        appointments[i] = {
+          ...appointment,
+          patient,
+          doctor,
+          time: appointment.time,
+        };
+      }
+    } 
+    }
+
+    // Loop through appointments to check and update status
+    for (let i = 0; i < appointments.length; i++) {
+      const appointment = appointments[i];
+
+      // Combine the date and virtual time for the appointment
+      const currDate = new Date();
+      const appointmentDate = new Date(appointment.date);
+
+      // Check if the appointment date and time have passed
+      if (
+        appointmentDate < currDate &&
+        !["CANCELLED", "RESCHEDULED", "COMPLETED"].includes(appointment.status)
+      ) {
+        // Update the status to "COMPLETED"
+        await appointmentModel.findByIdAndUpdate(
+          appointment._id,
+          { status: "COMPLETED" },
+          { new: true }
+        );
+        appointments[i].status = "COMPLETED"; // Update in-memory data
+      }
+    }
+
+    console.log("CHECKPOINT 3");
+    const appointmentsWithTime = appointments.map((appointment) => {
+      return {
+        ...appointment, // Use toObject() to get the document data
+        time: appointment.time, // Include the virtual "time" property
+      };
+    });
+    console.log("CHECKPOINT 4");
+    // sort appointments by date
+    appointmentsWithTime.sort((a, b) => {
+      return new Date(a.date) - new Date(b.date);
+    });
+    res.json(appointmentsWithTime);
+*/
+
+const getFamilyMemberAppointments = async (req, res) => {
+  const username = req.user.username;
+
+  try {
+    const patient = await patientModel.findOne({ username: username });
+    const familyMembers = patient.familyMembers;
+    const appointments = [];
+
+    for (let i = 0; i < familyMembers.length; i++) {
+      let familyPatientAppointments = [];
+      const familyMember = familyMembers[i];
+
+      var fmPatient;
+
+      if (familyMembers[i].type == "EXISTING") {
+        const familyPatient = await patientModel
+          .findById(familyMembers[i].id)
+          .lean();
+        familyPatientAppointments = await Appointment.find({
+          patientId: familyPatient._id,
+        })
+          .lean()
+          .select("-patientId");
+        fmPatient = familyPatient;
+
+        // add relation
+        fmPatient.relation = familyMember.relation;
+      } else {
+        const guest = await familyMembersModel
+          .findById(familyMembers[i].id)
+          .lean();
+        familyPatientAppointments = await Appointment.find({
+          patientId: guest._id,
+        })
+          .lean()
+          .select("-patientId");
+        fmPatient = guest;
+
+        // add relation
+        fmPatient.relation = familyMember.relation;
+      }
+
+      for (let i = 0; i < familyPatientAppointments.length; i++) {
+        const appointment = familyPatientAppointments[i];
+
+        const doctor = await Doctor.findById(appointment.doctorId)
+          .select("-password")
+          .lean();
+
+        familyPatientAppointments[i] = {
+          ...appointment,
+          patient: fmPatient,
+          doctor,
+          time: appointment.time,
+        };
+      }
+
+      // Accumulate appointments for each family member
+      appointments.push(...familyPatientAppointments);
+    }
+
+    // Loop through appointments to check and update status
+    for (let i = 0; i < appointments.length; i++) {
+      const appointment = appointments[i];
+
+      // Combine the date and virtual time for the appointment
+      const currDate = new Date();
+      const appointmentDate = new Date(appointment.date);
+
+      // Check if the appointment date and time have passed
+      if (
+        appointmentDate < currDate &&
+        !["CANCELLED", "RESCHEDULED", "COMPLETED"].includes(appointment.status)
+      ) {
+        // Update the status to "COMPLETED"
+        await Appointment.findByIdAndUpdate(
+          appointment._id,
+          { status: "COMPLETED" },
+          { new: true }
+        );
+        appointments[i].status = "COMPLETED"; // Update in-memory data
+      }
+    }
+
+    console.log("CHECKPOINT 3");
+    const appointmentsWithTime = appointments.map((appointment) => {
+      return {
+        ...appointment, // Use toObject() to get the document data
+        time: appointment.time, // Include the virtual "time" property
+      };
+    });
+    console.log("CHECKPOINT 4");
+    // sort appointments by date
+    appointmentsWithTime.sort((a, b) => {
+      return new Date(a.date) - new Date(b.date);
+    });
+
+    // Send the response after the loop
+    res.status(200).json(appointments);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }}
+    
 const getNotifications = async (req, res) => {
   const notifications = await Notification.find({type: "PATIENT"});
 
@@ -857,7 +1288,15 @@ module.exports = {
   getHealthRecords,
   changePassword,
   deleteMedicalHistory,
+
+  cancelAppointment,
+  rescheduleAppointment,
+  refundToWallet,
+  followUpAppointment,
+  getFamilyMemberAppointments,
+
   getMyDoctors,
   getNotifications,
   getAllPrescriptions,
+
 };
