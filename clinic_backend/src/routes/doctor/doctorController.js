@@ -3,6 +3,8 @@ const doctorModel = require("../../../../models/doctorModel");
 const patientModel = require("../../../../models/patientModel");
 const contractModel = require("../../../../models/contractModel");
 const Notification = require("../../../../models/notificationModel");
+const prescriptionsModel = require("../../../../models/prescriptionsModel.js");
+const medicineModel = require("../../../../models/medicineModel");
 
 //GET a patient's information and health records
 const getPatientInfo = async (req, res) => {
@@ -237,6 +239,142 @@ const changePassword = async (req, res) => {
     message: "Password Changed Successfully!",
   });
 };
+const getAllPrescriptions = async (req, res) => {
+  const username = req.body.username;
+
+  try {
+    const prescription = await prescriptionsModel.find({
+      doctorUsername: username,
+    });
+
+    if (!prescription) {
+      res.status(404).json({ message: " No Prescriptions Found" });
+    }
+
+    res.status(200).json(prescription);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+const updatePrescription = async (req, res) => {
+  const prescriptionID = req.body.prescriptionID;
+  const updatedDosage = req.body.dosage;
+  const updatedDuration = req.body.duration;
+  const updatedQuantity = req.body.quantity;
+  const medicineID = req.body.medicineID; // Convert to lowercase and trim whitespace
+
+  try {
+    // Find the prescription by ID
+    const prescription = await prescriptionsModel.findById(prescriptionID);
+    const medicineInModel = await medicineModel.findById(medicineID);
+    if (!prescription) {
+      return res.status(404).json({ error: "Prescription not found" });
+    }
+
+    // Find the medicine in the prescription
+    const medicine = prescription.medicines.find(
+      (m) => m.name === medicineInModel.name
+    );
+
+    //Check if the medicine was found
+    if (!medicine) {
+      return res
+        .status(404)
+        .json({ error: "Medicine not found in the prescription" });
+    }
+
+    // Update the dosage
+    if (!(updatedDosage === "")) medicine.dosage = updatedDosage;
+    if (!(updatedDuration === "")) medicine.duration = updatedDuration;
+    if (!(updatedQuantity === "")) {medicine.quantity = updatedQuantity;
+      medicine.remainingQuantity = updatedQuantity;
+    }
+
+    // Save the updated prescription
+    await prescription.save();
+
+    res.status(200).json({
+      message: "Prescriptions Dosage Updated Successfully",
+      prescription,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+const addPrescription = async (req, res) => {
+  const patient = await patientModel.findOne({
+    username: req.body.patientUsername,
+  });
+  const prescription = new prescriptionsModel({
+    patientUsername: req.body.patientUsername,
+    patientName: patient.name,
+    doctorUsername: req.body.doctorUsername,
+    doctorName: req.body.doctorName,
+    date: Date.now(),
+    filled: false,
+    medicines: req.body.medicines,
+  });
+  try {
+    const newPrescription = await prescription.save();
+    res.status(200).json(newPrescription);
+  } catch (err) {
+    res.status(500).json({ message: "Error creating a prescription" });
+  }
+};
+const getAvailableMedicines = async (req, res) => {
+  try {
+    const medicines = await medicineModel.find({ status: "AVAILABLE" });
+    res.status(200).json(medicines);
+  } catch (err) {
+    res.status(500).json({ message: "Error creating a prescription" });
+  }
+};
+
+const addMedicineToPrescription = async (req, res) => {
+  const medicineID = req.body.id;
+  const dosage = req.body.dosage;
+  const quantity = req.body.quantity;
+  const duration = req.body.duration;
+  const prescriptionID = req.body.prescriptionID;
+  try {
+    const prescription = await prescriptionsModel.findById(prescriptionID);
+    const medicine = await medicineModel.findById(medicineID);
+    prescription.medicines.push({
+      medicineID: medicineID,
+      name: medicine.name,
+      dosage: dosage,
+      quantity: quantity,
+      remainingQuantity: quantity,
+      duration: duration,
+    });
+
+    // Save the updated patient data
+    await prescription.save();
+
+    res.status(200).json(prescription);
+  } catch (err) {
+    res.status(500).json({ message: "Error adding to a prescription" });
+  }
+};
+const deleteMedicineFromPrescription = async (req, res) => {
+  const medicineID = req.body.id;
+  const prescriptionID = req.body.prescriptionID;
+  try {
+    const prescription = await prescriptionsModel.findById(prescriptionID);
+    prescription.medicines = prescription.medicines.filter(
+      (m) => m.medicineID.toString() !== medicineID
+    );
+
+    // Save the updated patient data
+    await prescription.save();
+
+    res.status(200).json(prescription);
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting to a prescription" });
+  }
+};
 
 const getNotifications = async (req, res) => {
   const notifications = await Notification.find({type: "DOCTOR"});
@@ -260,5 +398,11 @@ module.exports = {
   rejectContract,
   addHealthRecordForPatient,
   changePassword,
-  getNotifications
+  getNotifications,
+  getAllPrescriptions,
+  addPrescription,
+  getAvailableMedicines,
+  addMedicineToPrescription,
+  deleteMedicineFromPrescription,
+  updatePrescription,
 };

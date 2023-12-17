@@ -1,6 +1,8 @@
 const pharmacistModel = require("../../../../models/pharmacistModel");
 const contractModel = require("../../../../models/contractModel");
 const Notification = require("../../../../models/notificationModel");
+const medicineModel = require("../../../../models/medicineModel");
+const salesModel = require("../../../../models/salesModel");
 
 const viewAllContracts = async (req, res) => {
   const { username } = req.user;
@@ -78,6 +80,7 @@ const resetPassword = async (req, res) => {
   });
 };
 
+
 const viewAllNotifications = async (req, res) => {
   const notifications = await Notification.find({type: "PHARMACIST"});
 
@@ -87,10 +90,69 @@ const viewAllNotifications = async (req, res) => {
   });
 }
 
+const archiveMedicine = async (req, res) => {
+  const { _id } = req.body;
+
+  try {
+    const medicine = await medicineModel.findOneAndUpdate(
+      { _id: _id },
+      { status: "ARCHIVED" },
+      { new: true }
+    );
+
+    res.status(200).json(medicine);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+const unarchiveMedicine = async (req, res) => {
+  const { _id } = req.body;
+
+  try {
+    const medicine = await medicineModel.findOneAndUpdate(
+      { _id: _id },
+      { status: "AVAILABLE" },
+      { new: true }
+    );
+
+    res.status(200).json(medicine);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: "Server error" });
+  }
+};
+
+const viewSalesReport = async (req, res) => {
+  try {
+    let salesReport = null;
+    let responseArray = [];
+    const sales = await salesModel.find({});
+    
+    for (let i = 0; i < sales.length; i++) {
+      salesReport = { ...sales[i].toObject() };
+      const medicine = await medicineModel.findById(sales[i].medicineId);
+      if(medicine){
+        salesReport.medicineName = medicine.name;
+        responseArray.push(salesReport);
+      }
+      
+    }
+    res.status(200).json(responseArray);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   resetPassword,
   viewAllContracts,
   acceptContract,
   rejectContract,
-  viewAllNotifications
+  viewAllNotifications,
+  archiveMedicine,
+  unarchiveMedicine,
+  viewSalesReport,
 };

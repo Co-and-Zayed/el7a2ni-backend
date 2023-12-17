@@ -5,7 +5,10 @@ const {
   viewAllContracts,
   acceptContract,
   rejectContract,
-  viewAllNotifications
+  viewAllNotifications,
+  archiveMedicine,
+  unarchiveMedicine,
+  viewSalesReport,
 } = require("./pharmacistController");
 
 const { resetPassword } = require("./pharmacistController");
@@ -22,6 +25,25 @@ router.put("/rejectContract", authenticateToken("PHARMACIST"), rejectContract);
 
 router.post("/resetPassword", authenticateToken("PHARMACIST"), resetPassword);
 
+
 router.get("/viewAllNotifications", viewAllNotifications);
+
+router.post(
+  "/archiveMedicine",
+  //authenticateToken("PHARMACIST"),
+  archiveMedicine
+);
+
+router.post(
+  "/unarchiveMedicine",
+  //authenticateToken("PHARMACIST"),
+  unarchiveMedicine
+);
+
+router.post(
+  "/viewSalesReport",
+  //authenticateToken("PHARMACIST"),
+  viewSalesReport
+);
 
 module.exports = router;

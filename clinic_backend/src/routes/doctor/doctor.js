@@ -15,6 +15,12 @@ const {
   addHealthRecordForPatient,
   changePassword,
   getNotifications,
+  getAllPrescriptions,
+  getAvailableMedicines,
+  addMedicineToPrescription,
+  deleteMedicineFromPrescription,
+  updatePrescription,
+  addPrescription,
 } = require("./doctorController");
 const { getAppointments } = require("../appointment/appointmentController");
 
@@ -63,7 +69,40 @@ router.post(
   addHealthRecordForPatient
 );
 
+router.post(
+  "/getAllPrescriptions",
+  //authenticateToken("DOCTOR"),
+  getAllPrescriptions
+);
+
 // Change Password
 router.post("/changePassword", authenticateToken("DOCTOR"), changePassword);
 
+router.get(
+  "/getAvailableMedicines",
+  //authenticateToken("DOCTOR"),
+  getAvailableMedicines
+);
+router.post(
+  "/addMedicineToPrescription",
+  //authenticateToken("DOCTOR"),
+  addMedicineToPrescription
+);
+
+router.post(
+  "/deleteMedicineFromPrescription",
+  //authenticateToken("DOCTOR"),
+  deleteMedicineFromPrescription
+);
+router.post(
+  "/updatePrescription",
+  //authenticateToken("DOCTOR"),
+  updatePrescription
+);
+
+router.post(
+  "/addPrescription",
+  //authenticateToken("DOCTOR"),
+  addPrescription
+);
 module.exports = router;
