@@ -5,7 +5,9 @@ const Appointment = require("../../../../models/appointmentModel.js");
 const patientModel = require("../../../../models/patientModel.js");
 const packageModel = require("../../../../models/packageModel.js");
 const familyMembersModel = require("../../../../models/familyMembersModel.js");
+const prescriptionsModel = require("../../../../models/prescriptionsModel.js");
 const { getBucketName } = require("../../../../utils/getBucketName.js");
+const Notification = require("../../../../models/notificationModel.js");
 
 //GET list of all doctors or doctors by searching name and/or speciality
 const getDoctors = async (req, res) => {
@@ -796,6 +798,36 @@ const getHealthRecords = async (req, res) => {
   }
 };
 
+const getNotifications = async (req, res) => {
+  const notifications = await Notification.find({type: "PATIENT"});
+
+  return res.json({
+    success: true,
+    data: notifications
+  });
+}
+
+const getAllPrescriptions = async (req, res) => {
+  const username = req.body.username;
+
+  try {
+    const prescription = await prescriptionsModel.find({
+      patientUsername: username,
+    });
+
+    if (!prescription) {
+      res.status(404).json({ message: " No Prescriptions Found" });
+    }
+
+    res.status(200).json({
+      message: "Prescriptions Retrieved Successfully",
+      prescription,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 /*
   REMINDER TO ADD DATE CHECK WITH THE START OF EVERY SESSION IN ORDER TO CHANEG THE STATUS OF THE SUBSCRIPTION WHEN NEEDED
   CASES:
@@ -826,4 +858,6 @@ module.exports = {
   changePassword,
   deleteMedicalHistory,
   getMyDoctors,
+  getNotifications,
+  getAllPrescriptions,
 };

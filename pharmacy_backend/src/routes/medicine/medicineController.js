@@ -55,6 +55,7 @@ const createMedicine = async (req, res) => {
       otherActiveIngredients,
       medicinalUse,
       availableQuantity,
+      type,
     } = req.body;
 
     console.log("OTHER INGREDIETNTS");
@@ -72,6 +73,7 @@ const createMedicine = async (req, res) => {
       otherActiveIngredients: newOther,
       medicinalUse: newUses,
       availableQuantity,
+      type,
     });
     const medicine = await newMedicine.save();
     console.log("BALABIZO 3");
@@ -359,6 +361,20 @@ const buyMedicines = async (req, res) => {
   }
 };
 
+const updateMedicineQuantity = async (req, res) => {
+  const { id, quantity} = req.body;
+
+  const medicine = await Medicine.findById(id);
+
+  medicine.availableQuantity = quantity;
+
+  await medicine.save();
+
+  return res.json({
+    'success': true
+  });
+}
+
 module.exports = {
   createMedicine,
   getMedicines,
@@ -369,4 +385,5 @@ module.exports = {
   deleteMedicine,
   getMedicineById,
   buyMedicines,
+  updateMedicineQuantity
 };

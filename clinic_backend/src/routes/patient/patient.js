@@ -23,6 +23,10 @@ const {
   getHealthRecords,
   changePassword,
   getMyDoctors,
+  updateWallet,
+  getAll,
+  getNotifications,
+  getAllPrescriptions,
 } = require("./patientController");
 
 const { authenticateToken } = require("../../../../routes/auth/authController");
@@ -35,6 +39,8 @@ const {
   getAppointments,
   updateAppointment,
   deleteAppointment,
+  getAllAppointments,
+  updateAppointmentData,
 } = require("../appointment/appointmentController");
 
 const {
@@ -70,6 +76,8 @@ router.post("/addFamilyMember", authenticateToken("PATIENT"), addFamilyMember);
 router.get("/getFamilyMembers", authenticateToken("PATIENT"), getFamilyMembers);
 
 router.post("/payWithWallet", authenticateToken("PATIENT"), payWithWallet);
+
+router.get('/notifications', getNotifications);
 
 ///////////
 // ZEINA //
@@ -107,7 +115,7 @@ router.post(
 );
 router.post(
   "/viewSubscribedPackage",
-  authenticateToken("PATIENT"),
+  //authenticateToken("PATIENT"),
   viewSubscribedPackage
 );
 router.post(
@@ -145,5 +153,12 @@ router.post("/resetPassword", authenticateToken("PATIENT"), resetPassword);
 router.get("/getHealthRecords", authenticateToken("PATIENT"), getHealthRecords);
 // Change Password
 router.post("/changePassword", authenticateToken("PATIENT"), changePassword);
+
+// get All prescriptions
+router.post(
+  "/getAllPrescriptions",
+  //authenticateToken("PATIENT"),
+  getAllPrescriptions
+);
 
 module.exports = router;

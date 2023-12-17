@@ -10,6 +10,7 @@ const pharmacistModel = require("../../../../models/pharmacistModel");
 const contractModel = require("../../../../models/contractModel");
 const appointmentModel = require("../../../../models/appointmentModel");
 const familyMembersModel = require("../../../../models/familyMembersModel");
+const salesModel = require("../../../../models/salesModel");
 
 const { createUserTokens } = require("../../../../routes/auth/authController");
 
@@ -216,6 +217,35 @@ const sendContract = async (req, res) => {
   }
 };
 
+const viewSalesReport = async (req, res) => {
+  const monthNumber = req.body.month;
+
+  // Validate month number (1 to 12)
+  if (monthNumber < 1 || monthNumber > 12) {
+    return res.status(400).json({ error: "Invalid month number" });
+  }
+
+  // Assuming 'monthNumber' is a number representing the month (1 to 12)
+  const startOfMonth = new Date(new Date().getFullYear(), monthNumber - 1, 1);
+  const endOfMonth = new Date(
+    new Date(startOfMonth).setMonth(startOfMonth.getMonth() + 1)
+  );
+
+  try {
+    const sales = await salesModel.find({
+      date: {
+        $gte: startOfMonth,
+        $lt: endOfMonth,
+      },
+    });
+
+    res.status(200).json(sales);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   loginAdmin,
   createAdmin,
@@ -228,4 +258,5 @@ module.exports = {
   rejectPharmacist,
   sendContract,
   resetPassword,
+  viewSalesReport,
 };
